@@ -7,3 +7,7 @@
 2. Put in the ability to get the current link for a vehicle from TraCI.
 
 3. QualNet capability
+
+4. Create Raytracer pre-sim step.
+
+5. Modify UraeData to load precomputed raytracer results.
