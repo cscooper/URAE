@@ -4,7 +4,7 @@
 
 1. The shadow model needs to get vehicle dimensions from SUMO through TraCI
 
-2. Put in the ability to get the current link for a vehicle from TraCI.
+2. Put in the ability to get the current link for a vehicle from TraCI - Done, but untested.
 
 3. QualNet capability
 

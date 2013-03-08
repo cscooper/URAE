@@ -25,7 +25,7 @@
 #include <queue>
 #include <fstream>
 
-#include "Urae.h"
+
 
 
 
@@ -35,8 +35,8 @@ DimensionSet CORNERMapping::dimensions(Dimension::time,Dimension::frequency);
 using namespace VectorMath;
 using namespace Urae;
 
-CORNERMapping::CORNERMapping( Coord tPos, Coord rPos, double k, const Argument& start, const Argument& interval, const Argument& end) :
-					   SimpleConstMapping( dimensions, start, end, interval ), txPos( tPos ), rxPos( rPos ), kFactor( k ) {
+CORNERMapping::CORNERMapping( Coord tPos, Coord rPos, double k, Urae::UraeData::Classification c, const Argument& start, const Argument& interval, const Argument& end) :
+					   SimpleConstMapping( dimensions, start, end, interval ), txPos( tPos ), rxPos( rPos ), kFactor( k ), mClassification( c ) {
 }
 
 
@@ -50,9 +50,9 @@ double CORNERMapping::getValue( const Argument& pos ) const {
     Vector2D vRx = Vector2D(posR.x, posR.y);
 
     // get classification...
-    Classifier classifier;
+    Classifier classifier(mClassification);
     double PL = classifier.CalculatePathloss( vTx, vRx ) / UraeData::GetSingleton()->GetSystemLoss();
-    double fading = Fading::GetSingleton()->CalculateFading( classifier.GetClassification(), kFactor );
+    double fading = Fading::GetSingleton()->CalculateFading( mClassification, kFactor );
 
     return PL * fading;
 
@@ -87,11 +87,38 @@ void CORNERModel::filterSignal( AirFrame *frame, const Coord& sendersPos, const 
 		kFactor = frame->par( "riceanK" ).doubleValue();
 	}
 
+	TraCIMobility *pMobTx = dynamic_cast<TraCIMobility*>(frame->getSenderModule())->getMobilityModule();
+	TraCIMobility *pMobRx = dynamic_cast<TraCIMobility*>(frame->getArrivalModule())->getMobilityModule();
+
+	int txIndex, rxIndex;
+	bool txHasMapping = UraeData::GetSingleton()->LinkHasMapping( pMobTx->getRoadId(), &txIndex );
+	bool rxHasMapping = UraeData::GetSingleton()->LinkHasMapping( pMobTx->getRoadId(), &rxIndex );
+	UraeData::Classification c;
+
+	if ( txHasMapping && rxHasMapping ) {
+
+		c = UraeData::GetSingleton()->GetClassification( txIndex, rxIndex );
+
+	} else {
+
+		Classifier cls;
+		Coord posT = pManager->ConvertCoords( sendersPos );
+		Coord posR = pManager->ConvertCoords( receiverPos );
+		Vector2D vTx = Vector2D(posT.x, posT.y);
+		Vector2D vRx = Vector2D(posR.x, posR.y);
+
+		cls.CalculatePathloss( vTx, vRx );
+		c = cls.GetClassification();
+
+	}
+
+	
 	signal.addAttenuation(
 			new CORNERMapping(
 					sendersPos,
 					receiverPos,
 					kFactor,
+					c,
 					Argument(signal.getReceptionStart()),
 					Argument(0.1),
 					Argument(signal.getReceptionEnd())

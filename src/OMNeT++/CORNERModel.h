@@ -20,7 +20,7 @@
 #include "AnalogueModel.h"
 #include "Mapping.h"
 
-
+#include "Urae.h"
 
 
 
@@ -45,11 +45,13 @@ protected:
 	Coord txPos;
 	Coord rxPos;
 	double kFactor;
+	Urae::UraeData::Classification mClassifcation;
 
 public:
 	CORNERMapping( Coord tPos,
 				   Coord rPos,
 				   double k,
+				   Urae::UraeData::Classification c,
 				   const Argument& start,
 				   const Argument& interval,
 				   const Argument& end);

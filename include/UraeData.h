@@ -17,12 +17,13 @@
  * 
  *  Contact Details: Cooper - andor734@gmail.com
  */
+
+#pragma once
+
 #include "Singleton.h"
 #include "VectorMath.h"
 #include <list>
 #include <map>
-
-#pragma once
 
 namespace Urae {
 
@@ -92,7 +93,8 @@ namespace Urae {
 		typedef std::vector<Node> NodeSet;
 		typedef std::map< std::pair<int,int>, Classification > ClassificationMap;
 		typedef std::vector< Building > BuildingSet;
-		typedef std::vector< long > Bucket;
+		typedef std::vector<long> Bucket;
+		typedef std::map<std::string,int> LinkIndexMap;
 
 		
 		/*
@@ -124,15 +126,16 @@ namespace Urae {
 		* 		2. nodesFile - file name of the CORNER nodes file
 		* 		3. classFile - file name of the CORNER class file
 		* 		4. buildingFile - file name of the CORNER building file
-		* 		5. laneWidth - width of one lane in metres
-		* 		6. lambda - wavelength of the carrier signal
-		* 		7. txPower - transmission power of the signal
-		* 		8. L - losses due to the system (signal processing, etc) not related to propagation
-		* 		9. sensitivity - the sensitivity of the receiver
-		* 		10. lpr - The loss per reflection
+		* 		5. linkMapFile - file name of the CORNER link mapping file
+		* 		6. laneWidth - width of one lane in metres
+		* 		7. lambda - wavelength of the carrier signal
+		* 		8. txPower - transmission power of the signal
+		* 		9. L - losses due to the system (signal processing, etc) not related to propagation
+		* 		10. sensitivity - the sensitivity of the receiver
+		* 		11. lpr - The loss per reflection
 		*/
 				
-		UraeData( const char* linksFile, const char* nodesFile, const char* classFile, const char* buildingFile, VectorMath::Real laneWidth, VectorMath::Real lambda, VectorMath::Real txPower, VectorMath::Real L, VectorMath::Real sensitivity, VectorMath::Real lpr, VectorMath::Real grid );
+		UraeData( const char* linksFile, const char* nodesFile, const char* classFile, const char* buildingFile, const char* linkMapFile, VectorMath::Real laneWidth, VectorMath::Real lambda, VectorMath::Real txPower, VectorMath::Real L, VectorMath::Real sensitivity, VectorMath::Real lpr, VectorMath::Real grid );
 
 		~UraeData();
 
@@ -189,7 +192,19 @@ namespace Urae {
 		 * Description: Get the CORNER classification between the given links.
 		 */
 		Classification GetClassification( int l1, int l2 );
-		
+
+		/*
+		 * Method: Classification GetClassification( std::string link1, std::string link2 );
+		 * Description: Get the CORNER classification between the given links (by names).
+		 */
+		Classification GetClassification( std::string link1, std::string link2 );
+
+		/*
+		 * Method: bool LinkHasMapping( std::string linkName, int *pMapping );
+		 * Description: Returns true if the given link name is mapped to an index.
+		 */
+		bool LinkHasMapping( std::string linkName, int *pMapping );
+
 		/*
 		 * Method: Building *GetBuilding( int index );
 		 * Description: Get the building at the given index.
@@ -208,7 +223,7 @@ namespace Urae {
 		 * Method: void LoadNetwork( char* linksFile, char* nodesFile, const char* classFile );
 		 * Description: Loads the data from the links, nodes, and classification files.
 		 */
-		void LoadNetwork( const char* linksFile, const char* nodesFile, const char* classFile, const char* buildingFile );
+		void LoadNetwork( const char* linksFile, const char* nodesFile, const char* classFile, const char* buildingFile, const char* linkMapFile );
 		
 		/*
 		 * Method: void ComputeSummedLinkSet();
@@ -235,6 +250,7 @@ namespace Urae {
 		LinkSet mLinkSet;									// set of links loaded from file
 		NodeSet mNodeSet;									// set of nodes loaded from file
 		LinkSet mSummedLinkSet;								// link set calculated by summing lane counts of links sharing nodes
+		LinkIndexMap mLinkIndexMap;							// mapping between link indices and link names
 
 		VectorMath::Real mWavelength;						// wavelength of carrier signal
 		VectorMath::Real mTransmitPower;					// transmission power

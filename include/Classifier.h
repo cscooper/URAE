@@ -56,6 +56,7 @@ namespace Urae {
 
 		// constructor/destructor
 		Classifier();
+		Classifier( UraeData::Classification c );
 		virtual ~Classifier();
 
 		/*
@@ -69,7 +70,8 @@ namespace Urae {
 		int GetDestinationLink() { return mDestinationLink; }
 
 	protected:
-		
+
+		bool mPrecomputed;
 		UraeData::Classification mClassification;
 		unsigned int mSourceLink;
 		unsigned int mDestinationLink;

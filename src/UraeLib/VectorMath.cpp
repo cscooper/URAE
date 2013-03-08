@@ -533,7 +533,7 @@ Real VectorMath::ComputeCovariance( std::vector<Real>& X, std::vector<Real>& Y )
 		return DBL_MAX;
 
 	double sum = 0, meanX, meanY;
-	int i = 0;
+	unsigned int i = 0;
 
 	meanX = ComputeMean( X );
 	meanY = ComputeMean( Y );

@@ -10,8 +10,8 @@ LIB_DIR=lib
 
 INCLUDE=-Iinclude/ -I/usr/include
 
-_SRC=UraeData.cpp Raytracer.cpp Classifier.cpp VectorMath.cpp Fading.cpp
-_OBJ=UraeData.o Raytracer.o Classifier.o VectorMath.o Fading.o
+_SRC=UraeData.cpp Classifier.cpp VectorMath.cpp Fading.cpp
+_OBJ=UraeData.o Classifier.o VectorMath.o Fading.o
 LIB=
 
 ifeq ($(DEBUGMODE),1)
@@ -24,22 +24,25 @@ else
 endif
 
 
-SRC=$(patsubst %,$(SRC_DIR)/%,$(_SRC))
-OBJ=$(patsubst %,$(OBJ_DIR)/%,$(_OBJ))
+URAELIB_SRC=$(patsubst %,$(SRC_DIR)/UraeLib/%,$(_SRC))
+URAELIB_OBJ=$(patsubst %,$(OBJ_DIR)/UraeLib/%,$(_OBJ))
+
+URAELIB_SRC_DIR=$(SRC_DIR)/UraeLib
+URAELIB_OBJ_DIR=$(OBJ_DIR)/UraeLib
 
 LIBRARY=$(LIB)
 
 Library : $(SRC) $(LIB)
 
-$(LIB) : $(OBJ)
+$(LIB) : $(URAELIB_OBJ)
 	rm -f $@
-	ar cq $@ $(OBJ)
+	ar cq $@ $(URAELIB_OBJ)
 
-$(OBJ_DIR)/%.o : $(SRC_DIR)/%.cpp 
+$(URAELIB_OBJ_DIR)/%.o : $(URAELIB_SRC_DIR)/%.cpp 
 	$(CC) $(FLAGS) -c $< -o $@ $(INCLUDE)
 
 
 clean:
-	rm -f $(OBJ)
+	rm -f $(URAELIB_OBJ)
 	rm -f $(LIB)
 

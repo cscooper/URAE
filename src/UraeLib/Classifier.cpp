@@ -46,7 +46,19 @@ Classifier::Classifier() {
 	if ( !UraeData::GetSingleton() )
 		THROW_EXCEPTION( "Could not find an initialised UraeData Singleton, needed by ComputeState." );
 
+	mPrecomputed = false;
+
 }
+
+
+Classifier::Classifier( UraeData::Classification c ) {
+
+	mPrecomputed = true;
+	mClassification = c;
+
+}
+
+
 
 Classifier::~Classifier() { }
 
@@ -58,7 +70,8 @@ Real Classifier::CalculatePathloss( Vector2D source, Vector2D destination ) {
 
 	UraeData *pUraeData = UraeData::GetSingleton();
 
-	ComputeState( source, destination );
+	if ( !mPrecomputed )
+		ComputeState( source, destination );
 
 	switch( mClassification.mClassification ) {
 

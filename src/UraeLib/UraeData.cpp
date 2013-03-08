@@ -86,17 +86,18 @@ Real UraeData::GetLossPerReflection() {
 
 
 
-UraeData::UraeData( VectorMath::Real laneWidth, VectorMath::Real lambda, VectorMath::Real txPower, VectorMath::Real L, VectorMath::Real sensitivity, VectorMath::Real lpr, VectorMath::Real grid )
-	: mLaneWidth(laneWidth),
-	  mWavelength(lambda),
-	  mTransmitPower(txPower),
-	  mSystemLoss(L), 
-	  mSensitivity(sensitivity), 
-	  mLossPerReflection(lpr), 
-	  mGridSize(grid), 
-	  mBucketSize(grid), 
-	  mLambdaBy4PiSq( pow ( mWavelength / (4 * M_PI), 2 ) ), 
-	  mFreeSpaceRange( ( mWavelength / ( 4 * M_PI ) ) * sqrt( mTransmitPower / ( mSystemLoss * mSensitivity ) ) ) {
+UraeData::UraeData( VectorMath::Real laneWidth, VectorMath::Real lambda, VectorMath::Real txPower, VectorMath::Real L, VectorMath::Real sensitivity, VectorMath::Real lpr, VectorMath::Real grid ) {
+
+	mLaneWidth = laneWidth;
+	mWavelength = lambda;
+	mTransmitPower = txPower;
+	mSystemLoss = L;
+	mSensitivity = sensitivity; 
+	mLossPerReflection = lpr;
+	mGridSize = grid;
+	mBucketSize = grid;
+	mLambdaBy4PiSq = pow( mWavelength / (4 * M_PI), 2 );
+	mFreeSpaceRange = ( mWavelength / ( 4 * M_PI ) ) * sqrt( mTransmitPower / ( mSystemLoss * mSensitivity ) );
 
 }
 
@@ -107,19 +108,20 @@ UraeData::UraeData( VectorMath::Real laneWidth, VectorMath::Real lambda, VectorM
  * 		2. nodesFile - file name of the CORNER nodes file
  * 		3. classFile - file name of the CORNER class file
  * 		4. buildingFile - file name of the CORNER building file
- * 		5. laneWidth - width of one lane in metres
- * 		6. lambda - wavelength of the carrier signal
- * 		7. txPower - transmission power of the signal
- * 		8. L - losses due to the system (signal processing, etc) not related to propagation
- * 		9. sensitivity - the sensitivity of the receiver
- * 		10. lpr - The loss per reflection
-*/
-		
+ * 		5. linkMapFile - file name of the CORNER link mapping file
+ * 		6. laneWidth - width of one lane in metres
+ * 		7. lambda - wavelength of the carrier signal
+ * 		8. txPower - transmission power of the signal
+ * 		9. L - losses due to the system (signal processing, etc) not related to propagation
+ * 		10. sensitivity - the sensitivity of the receiver
+ * 		11. lpr - The loss per reflection
+ */
 UraeData::UraeData(
 		const char* linksFile,
 		const char* nodesFile,
 		const char* classFile,
-		const char* buildingFile, 
+		const char* buildingFile,
+		const char* linkMapFile, 
 		VectorMath::Real laneWidth, 
 		VectorMath::Real lambda, 
 		VectorMath::Real txPower, 
@@ -139,7 +141,7 @@ UraeData::UraeData(
 	mLambdaBy4PiSq = pow( mWavelength / (4 * M_PI), 2 );
 	mFreeSpaceRange = sqrt( mLambdaBy4PiSq * mTransmitPower / ( mSystemLoss * mSensitivity ) );
 
-	LoadNetwork( linksFile, nodesFile, classFile, buildingFile );
+	LoadNetwork( linksFile, nodesFile, classFile, buildingFile, linkMapFile );
 	ComputeSummedLinkSet();
 	ComputeBuckets();
 
@@ -279,6 +281,30 @@ UraeData::Classification UraeData::GetClassification( int l1, int l2 ) {
 }
 
 
+/*
+ * Method: Classification GetClassification( std::string link1, std::string link2 );
+ * Description: Get the CORNER classification between the given links (by name).
+ */
+UraeData::Classification UraeData::GetClassification( std::string link1, std::string link2 ) {
+
+	return GetClassification( mLinkIndexMap[link1], mLinkIndexMap[link2] );
+
+}
+
+
+/*
+ * Method: bool LinkHasMapping( std::string linkName, int *pMapping );
+ * Description: Returns true if the given link name is mapped to an index.
+ */
+bool UraeData::LinkHasMapping( std::string linkName, int *pMapping ) {
+
+	bool hasMapping = mLinkIndexMap.find(linkName) != mLinkIndexMap.end();
+	if ( hasMapping && pMapping )
+		*pMapping = mLinkIndexMap[linkName];
+	return hasMapping;
+
+}
+
 
 /*
  * Method: Building *GetBuilding( int index );
@@ -302,12 +328,12 @@ UraeData::Grid* UraeData::GetGrid(Vector2D position) {
  * Method: void LoadNetwork( char* linksFile, char* nodesFile, const char* classFile, const char* buildingFile );
  * Description: Loads the data from the links and nodes files.
  */
-void UraeData::LoadNetwork( const char* linksFile, const char* nodesFile, const char* classFile, const char* buildingFile ) {
+void UraeData::LoadNetwork( const char* linksFile, const char* nodesFile, const char* classFile, const char* buildingFile, const char* linkMapFile ) {
 	ifstream stream;
 	char buffer[20];
 
 	//create temporary buffers to read in nodeIDs, and the nodeA and nodeB identifiers for links
-	int numNodesInFile, numLinksInFile, numClassInFile, numBuildingsInFile;
+	int numNodesInFile, numLinksInFile, numClassInFile, numBuildingsInFile, numLinkMappings;
 
 	// read the nodes file
 	stream.open( nodesFile );
@@ -440,6 +466,24 @@ void UraeData::LoadNetwork( const char* linksFile, const char* nodesFile, const 
 
 	stream.close();
 
+	// read the link mappings
+	stream.open( linkMapFile );
+	if ( stream.fail() ) {
+		THROW_EXCEPTION( "Cannot open link mapping file: %s", linkMapFile );
+	}
+
+	stream >> dec >> numLinkMappings;
+	for ( int c = 0; c < numLinkMappings; c++ ) {
+
+		std::string strTmp;
+		int index;
+		stream >> strTmp >> index;
+		mLinkIndexMap[ strTmp ] = index;
+
+	}
+
+	stream.close();
+
 	mMapRect.location = topLeft;
 	mMapRect.size = bottomRight - topLeft;
 
@@ -456,6 +500,8 @@ void UraeData::LoadNetwork( const char* linksFile, const char* nodesFile, const 
  */
 void UraeData::ComputeSummedLinkSet() {
 
+	// Note: Not sure if this is necessary now, since the Corner python class performs the link reduction.
+	
 	LinkSet::iterator linkIt;
 	std::map< std::pair<int,int>, int > nodePairMapLinkIndex;
 	std::pair<int,int> n1, n2;
@@ -497,7 +543,7 @@ void UraeData::ComputeSummedLinkSet() {
  */
 void UraeData::ComputeBuckets() {
 
-	int i, j;
+	unsigned int i, j;
 
 	if ( mMapRect.size.x > mBucketSize * SINCOS45 )
 		mBucketX = ceil( mMapRect.size.x / mBucketSize - SINCOS45 );
@@ -575,7 +621,7 @@ void UraeData::ComputeBuckets() {
 
 void UraeData::CollectBucketsInRange( VectorMath::Real r, VectorMath::Vector2D p, Bucket *pBucket ) {
 
-	int i, j;
+	unsigned int i, j;
 	for ( i = 0; i < mBucketX; i++ ) {
 		for ( j = 0; j < mBucketY; j++ ) {
 			Vector2D c = mCentroid + Vector2D( i, j ) * mBucketSize;

@@ -23,5 +23,5 @@
 #include "Singleton.h"
 #include "VectorMath.h"
 #include "UraeData.h"
-#include "Raytracer.h"
-#include "Singleton.h"
+#include "Fading.h"
+#include "Classifier.h"
