@@ -21,9 +21,6 @@
 #include "Mapping.h"
 
 
-// TODO: Get the vehicle type and dimensions from SUMO
-#error "GET THE VEHICLE TYPE AND DIMENSIONS FROM SUMO!"
-
 class MIXIM_API CarShadowModel: public AnalogueModel {
 
 protected:

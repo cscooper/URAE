@@ -36,15 +36,15 @@ Define_Module( UraePhyLayer );
 UraePhyLayer::UraePhyLayer() {
 	// TODO Auto-generated constructor stub
 
-    m_pCurrentRaytrace = NULL;
-    m_pLastRaytrace = NULL;
+//     m_pCurrentRaytrace = NULL;
+//     m_pLastRaytrace = NULL;
 
 }
 
 UraePhyLayer::~UraePhyLayer() {
 	// TODO Auto-generated destructor stub
-    delete m_pCurrentRaytrace;
-    delete m_pLastRaytrace;
+//     delete m_pCurrentRaytrace;
+//     delete m_pLastRaytrace;
 }
 
 
@@ -54,17 +54,17 @@ void UraePhyLayer::initialize(int stage) {
 	PhyLayer::initialize( stage );
 	if ( stage == 0 ) {
 
-		mConstantK = par("constantK").doubleValue();
-		mUseRaytracer = par("useRaytracing").boolValue();
-		mRayCount = par("rayCount").longValue();
-		mThreadCount = par("threadCount").longValue();
-		mRaytraceDistance = par("raytraceDistance").doubleValue();
-
-		this->recordScalar( "rayCount", mRayCount, NULL );
-		this->recordScalar( "threadCount", mThreadCount, NULL );
-		this->recordScalar( "raytraceDistance", mRaytraceDistance, "m" );
-		this->recordScalar( "useRaytracer", mUseRaytracer ? 1 : 0, NULL );
-		this->recordScalar( "constantK", mConstantK ? 1 : 0, NULL );
+// 		mConstantK = par("constantK").doubleValue();
+// 		mUseRaytracer = par("useRaytracing").boolValue();
+// 		mRayCount = par("rayCount").longValue();
+// 		mThreadCount = par("threadCount").longValue();
+// 		mRaytraceDistance = par("raytraceDistance").doubleValue();
+// 
+// 		this->recordScalar( "rayCount", mRayCount, NULL );
+// 		this->recordScalar( "threadCount", mThreadCount, NULL );
+// 		this->recordScalar( "raytraceDistance", mRaytraceDistance, "m" );
+// 		this->recordScalar( "useRaytracer", mUseRaytracer ? 1 : 0, NULL );
+// 		this->recordScalar( "constantK", mConstantK ? 1 : 0, NULL );
 
 	}
 
@@ -119,7 +119,7 @@ void UraePhyLayer::handleUpperMessage(cMessage* msg) {
 	assert(dynamic_cast<cPacket*>(msg) != 0);
 
 	AirFrame* frame = encapsMsg(static_cast<cPacket*>(msg));
-
+/*
 	if ( mUseRaytracer ) {
 
 		if ( Corner::BuildingSolver::GetSingleton() == NULL )
@@ -162,7 +162,7 @@ void UraePhyLayer::handleUpperMessage(cMessage* msg) {
 
 		frame->addPar( "riceanK" ).setDoubleValue( mConstantK );
 
-	}
+	}*/
 
 	// make sure there is no self message of kind TX_OVER scheduled
 	// and schedule the actual one

@@ -238,6 +238,11 @@ namespace Urae {
 		 */
 		void ComputeBuckets();
 
+		/*
+		 * Method: double GetVehicleClassHeight( std::string );
+		 * Description: Get the height of vehicles of the given class.
+		 */
+		double GetVehicleClassHeight( std::string );
 
 	protected:
 

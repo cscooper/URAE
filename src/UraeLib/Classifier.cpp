@@ -53,6 +53,9 @@ Classifier::Classifier() {
 
 Classifier::Classifier( UraeData::Classification c ) {
 
+	if ( !UraeData::GetSingleton() )
+		THROW_EXCEPTION( "Could not find an initialised UraeData Singleton, needed by ComputeState." );
+
 	mPrecomputed = true;
 	mClassification = c;
 

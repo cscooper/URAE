@@ -81,11 +81,11 @@ void CORNERModel::filterSignal( AirFrame *frame, const Coord& sendersPos, const 
     pos = pManager->ConvertCoords( receiverPos );
     Vector2D destLocation = VectorMath::Vector2D( pos.x, pos.y );
 
-	if ( frame->hasPar( "rayTrace" ) ) {
-		kFactor = ((Raytracer*)frame->par("rayTrace").pointerValue())->ComputeK( destLocation, 1 );
-	} else if ( frame->hasPar( "riceanK" ) ) {
-		kFactor = frame->par( "riceanK" ).doubleValue();
-	}
+// 	if ( frame->hasPar( "rayTrace" ) ) {
+// 		kFactor = ((Raytracer*)frame->par("rayTrace").pointerValue())->ComputeK( destLocation, 1 );
+// 	} else if ( frame->hasPar( "riceanK" ) ) {
+// 		kFactor = frame->par( "riceanK" ).doubleValue();
+// 	}
 
 	TraCIMobility *pMobTx = dynamic_cast<TraCIMobility*>(frame->getSenderModule())->getMobilityModule();
 	TraCIMobility *pMobRx = dynamic_cast<TraCIMobility*>(frame->getArrivalModule())->getMobilityModule();

@@ -23,13 +23,14 @@
 #include "AirFrame_m.h"
 #include "ChannelAccess.h"
 
+#include "UraeData.h"
 
 
 DimensionSet CarShadowMapping::dimensions(Dimension::time,Dimension::frequency);
 
 
 using namespace VectorMath;
-using namespace Corner;
+using namespace Urae;
 
 CarShadowMapping::CarShadowMapping( double v, const Argument& start, const Argument& interval, const Argument& end) :
 					   SimpleConstMapping( dimensions, start, end, interval ), mValue(v) {
@@ -85,13 +86,13 @@ void CarShadowModel::filterSignal( AirFrame *frame, const Coord& sendersPos, con
 	Rect lineRect(l);
 
 
-	CarMobility *pSenderMob = dynamic_cast<CarMobility*>(dynamic_cast<ChannelAccess *const>(frame->getSenderModule())->getMobilityModule());
-	CarMobility *pReceiverMob = dynamic_cast<CarMobility*>(dynamic_cast<ChannelAccess *const>(frame->getArrivalModule())->getMobilityModule());
+	TraCIMobility *pSenderMob = dynamic_cast<TraCIMobility*>(dynamic_cast<ChannelAccess *const>(frame->getSenderModule())->getMobilityModule());
+	TraCIMobility *pReceiverMob = dynamic_cast<TraCIMobility*>(dynamic_cast<ChannelAccess *const>(frame->getArrivalModule())->getMobilityModule());
 
 	if ( !pSenderMob )
 		return;
 
-	double txHeight = pSenderMob->GetHeight();
+	double txHeight = UraeData::GetSingleton()->GetVehicleClassHeight( pSenderMob->commandGetVehicleClass() );
 
 	bool bFound = false;
 
@@ -107,7 +108,7 @@ void CarShadowModel::filterSignal( AirFrame *frame, const Coord& sendersPos, con
 
 	for ( AllInVector( it, (*pCars) ) ) {
 
-		CarMobility *pMob = dynamic_cast<CarMobility*>(it->second->getSubmodule("mobility",-1));
+		TracIMobility *pMob = dynamic_cast<TracIMobility*>(it->second->getSubmodule("mobility",-1));
 
 		Coord vPos = pMob->getCurrentPosition();
 
@@ -122,14 +123,16 @@ void CarShadowModel::filterSignal( AirFrame *frame, const Coord& sendersPos, con
 		heading2 = Vector2D( heading1.y, -heading1.x );
 		LineSegment d1, d2;
 
-		d1 = LineSegment( p+heading1*pMob->GetLength()/2+heading2*pMob->GetWidth()/2, p-heading1*pMob->GetLength()/2-heading2*pMob->GetWidth()/2 );
-		d2 = LineSegment( p+heading1*pMob->GetLength()/2-heading2*pMob->GetWidth()/2, p-heading1*pMob->GetLength()/2+heading2*pMob->GetWidth()/2 );
+		double currLength = pMob->commandGetVehicleLength();
+		double currWidth = pMob->commandGetVehicleWidth();
+		d1 = LineSegment( p+heading1*currLength/2+heading2*currWidth/2, p-heading1*currLength/2-heading2*currWidth/2 );
+		d2 = LineSegment( p+heading1*currLength/2-heading2*currWidth/2, p-heading1*currLength/2+heading2*currWidth/2 );
 
 		bool d1Int = d1.IntersectLine( l, &v1 ), d2Int = d2.IntersectLine( l, &v2 );
 
 		if ( d1Int || d2Int ) {
 
-			double h1 = pMob->GetHeight() - txHeight, h2, h3, dTx, dRx;
+			double h1 = UraeData::GetSingleton()->GetVehicleClassHeight( pMob->commandGetVehicleClass() ) - txHeight, h2, h3, dTx, dRx;
 			if ( d1Int ) {
 				h2 = (d1.mStart-v1).Magnitude();
 				h3 = (  d1.mEnd-v1).Magnitude();

@@ -617,6 +617,18 @@ void UraeData::ComputeBuckets() {
 
 
 
+/*
+ * Method: double GetVehicleClassHeight( std::string );
+ * Description: Get the height of vehicles of the given class.
+ */
+double UraeData::GetVehicleClassHeight( std::string strName ) {
+
+	// TODO: GET HEIGHTS FOR THE VEHICLE CLASSES
+	return 2;
+
+}
+
+
 
 
 void UraeData::CollectBucketsInRange( VectorMath::Real r, VectorMath::Vector2D p, Bucket *pBucket ) {

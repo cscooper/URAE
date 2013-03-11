@@ -13,8 +13,8 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-#ifndef CORNERPHYLAYER_H_
-#define CORNERPHYLAYER_H_
+#ifndef URAEPHYLAYER_H_
+#define URAEPHYLAYER_H_
 
 #include <queue>
 #include "PhyLayer80211p.h"
@@ -30,7 +30,7 @@ protected:
 	virtual AnalogueModel* getAnalogueModelFromName( std::string name, ParameterMap& params );
 	virtual void handleUpperMessage(cMessage* msg);
 
-
+/*
     Corner::Raytracer *m_pCurrentRaytrace;
     Corner::Raytracer *m_pLastRaytrace;
 
@@ -39,6 +39,7 @@ protected:
     int mRayCount;
     int mThreadCount;
     double mRaytraceDistance;		// distance before running new raytrace
+*/
 
 };
 

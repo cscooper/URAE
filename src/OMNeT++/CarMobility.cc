@@ -19,34 +19,16 @@
 Define_Module(CarMobility);
 
 
-double CarMobility::GetLength() { return mLength; }
-double CarMobility::GetWidth() { return mWidth; }
-double CarMobility::GetHeight() { return mHeight; }
-
-
-void CarMobility::SetLength(double l) { mLength = l; }
-void CarMobility::SetWidth(double w) { mWidth = w; }
-void CarMobility::SetHeight(double h) { mHeight = h; }
-
 void CarMobility::initialize(int stage)
 {
 
-	TraCIMobility::initialize( stage );
+	if ( stage == 0 ) {
+		
+		
 
-	double r = (double)rand() / (double)RAND_MAX;
-	if ( r <= 0.75 ) {
-		mLength = 3;
-		mWidth = 1.5;
-		mHeight = 1.2;
-	} else if ( r-0.75 < 0.2 ) {
-		mLength = 3.66;
-		mWidth = 1.83;
-		mHeight = 1.83;
-	} else if ( r-0.95 < 0.05 ) {
-		mLength = 12.2;
-		mWidth = 1.8;
-		mHeight = 3.35;
 	}
+
+	TraCIMobility::initialize( stage );
 
 }
 

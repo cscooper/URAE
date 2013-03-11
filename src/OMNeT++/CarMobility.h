@@ -24,20 +24,12 @@
 class CarMobility : public TraCIMobility
 {
 
-public:
-    double GetLength();
-    double GetWidth();
-    double GetHeight();
-
-    void SetLength(double l);
-    void SetWidth(double w);
-    void SetHeight(double h);
-
 protected:
     virtual void initialize(int stage);
     virtual void handleMessage(cMessage *msg);
 
-    double mLength, mWidth, mHeight;
+	std::string vehicleTypeId;	/**< The type of vehicle. */
+
 };
 
 #endif

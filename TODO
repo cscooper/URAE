@@ -2,12 +2,15 @@
 // TO-DO LIST FOR URAE //
 /////////////////////////
 
-1. The shadow model needs to get vehicle dimensions from SUMO through TraCI
+1. The shadow model needs to get vehicle dimensions from SUMO through TraCI - Done, but untested.
 
 2. Put in the ability to get the current link for a vehicle from TraCI - Done, but untested.
 
-3. QualNet capability
+3. Create Raytracer pre-sim step.
 
-4. Create Raytracer pre-sim step.
+4. Modify UraeData to load precomputed raytracer results.
 
-5. Modify UraeData to load precomputed raytracer results.
+5. Create a table with vehicle heights for corresponding classes - GetVehicleClassHeight has only a place holder at the moment
+
+6. QualNet capability
+

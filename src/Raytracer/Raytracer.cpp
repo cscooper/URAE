@@ -25,7 +25,7 @@
 #include <queue>
 
 #include "Urae.h"
-
+#include "Raytracer.h"
 //#define RAYTRACE_DEBUG
 
 #include <iostream>
