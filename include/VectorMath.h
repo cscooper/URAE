@@ -238,8 +238,10 @@ namespace VectorMath {
 		Vector2D Midpoint();
 
 	};
-	
-	
+
+#define ForPointsOnLine( p, l, incr, _l )	Vector2D p; \
+										for ( Real _l = 0; _l <= 1; _l+=incr/l.GetDistance(), p=l.mStart+l.GetVector()*_l )
+
 
 	/*
 	 *	Class:		 Rect

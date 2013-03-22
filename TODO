@@ -6,7 +6,7 @@
 
 2. Put in the ability to get the current link for a vehicle from TraCI - Done, but untested.
 
-3. Create Raytracer pre-sim step.
+3. Create Raytracer pre-sim step - Done, but untested.
 
 4. Modify UraeData to load precomputed raytracer results.
 

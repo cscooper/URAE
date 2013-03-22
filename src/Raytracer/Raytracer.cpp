@@ -185,6 +185,8 @@ void *Raytracer::WorkerThread(void *pRT) {
 		bDone = raytracer->RunTrace();
 	}
 
+	return NULL;
+
 }
 
 
