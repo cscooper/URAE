@@ -319,8 +319,6 @@ int main( int argc, char *pArgv[] ) {
 
 					RiceFactorEntry kEnt;
 					kEnt.mKfactor = rt->ComputeK( destPos, rxGain );
-					if ( kEnt.mKfactor == 0 )
-						continue;
 					kEnt.mSrcDestPair = SrcDestPair( srcPos, destPos );
 					kData.push_back( kEnt );
 
@@ -361,7 +359,7 @@ int main( int argc, char *pArgv[] ) {
 		RiceFactorData::iterator dataIt;
 		for ( AllInVector( dataIt, mapIt->second ) ) {
 
-			outputFile << dataIt->mSrcDestPair.first << " "  << dataIt->mSrcDestPair.second << " ";
+			outputFile << dataIt->mSrcDestPair.first.x << " " << dataIt->mSrcDestPair.first.y << " " << dataIt->mSrcDestPair.second.x << " " << dataIt->mSrcDestPair.second.y << " ";
 			if ( dataIt->mKfactor == DBL_MAX )
 				outputFile << "inf\n";
 			else

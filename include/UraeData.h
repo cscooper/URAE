@@ -91,7 +91,8 @@ namespace Urae {
 		// typedefs
 		typedef std::vector<Link> LinkSet;
 		typedef std::vector<Node> NodeSet;
-		typedef std::map< std::pair<int,int>, Classification > ClassificationMap;
+		typedef std::pair<int,int> LinkPair;
+		typedef std::map< LinkPair, Classification > ClassificationMap;
 		typedef std::vector< Building > BuildingSet;
 		typedef std::vector<long> Bucket;
 		typedef std::map<std::string,int> LinkIndexMap;
@@ -107,6 +108,17 @@ namespace Urae {
 			LinkIndexSet linkList;
 		};
 
+		struct RiceFactorEntry {
+
+			VectorMath::Vector2D mSource;
+			VectorMath::Vector2D mDestination;
+			VectorMath::Real mKfactor;
+
+		};
+
+		typedef std::vector<RiceFactorEntry> RiceFactorData;
+		typedef std::map<LinkPair,RiceFactorData> RiceFactorMap;
+
 		// getters
 		VectorMath::Real GetWavelength();
 		VectorMath::Real GetLamdaBy4PiSq();
@@ -121,21 +133,37 @@ namespace Urae {
 		UraeData( VectorMath::Real laneWidth, VectorMath::Real lambda, VectorMath::Real txPower, VectorMath::Real L, VectorMath::Real sensitivity, VectorMath::Real lpr, VectorMath::Real grid );
 
 		/*
-		* Constructor Arguments:
-		* 		1. linksFile - file name of the CORNER links file
-		* 		2. nodesFile - file name of the CORNER nodes file
-		* 		3. classFile - file name of the CORNER class file
-		* 		4. buildingFile - file name of the CORNER building file
-		* 		5. linkMapFile - file name of the CORNER link mapping file
-		* 		6. laneWidth - width of one lane in metres
-		* 		7. lambda - wavelength of the carrier signal
-		* 		8. txPower - transmission power of the signal
-		* 		9. L - losses due to the system (signal processing, etc) not related to propagation
-		* 		10. sensitivity - the sensitivity of the receiver
-		* 		11. lpr - The loss per reflection
-		*/
-				
+		 * Constructor Arguments:
+		 * 		1. linksFile - file name of the CORNER links file
+		 * 		2. nodesFile - file name of the CORNER nodes file
+		 * 		3. classFile - file name of the CORNER class file
+		 * 		4. buildingFile - file name of the CORNER building file
+		 * 		5. linkMapFile - file name of the CORNER link mapping file
+		 * 		6. laneWidth - width of one lane in metres
+		 * 		7. lambda - wavelength of the carrier signal
+		 * 		8. txPower - transmission power of the signal
+		 * 		9. L - losses due to the system (signal processing, etc) not related to propagation
+		 * 		10. sensitivity - the sensitivity of the receiver
+		 * 		11. lpr - The loss per reflection
+		 */
 		UraeData( const char* linksFile, const char* nodesFile, const char* classFile, const char* buildingFile, const char* linkMapFile, VectorMath::Real laneWidth, VectorMath::Real lambda, VectorMath::Real txPower, VectorMath::Real L, VectorMath::Real sensitivity, VectorMath::Real lpr, VectorMath::Real grid );
+
+		/*
+		 * Constructor Arguments:
+		 * 		1. linksFile - file name of the CORNER links file
+		 * 		2. nodesFile - file name of the CORNER nodes file
+		 * 		3. classFile - file name of the CORNER class file
+		 * 		4. buildingFile - file name of the CORNER building file
+		 * 		5. linkMapFile - file name of the CORNER link mapping file
+		 * 		6. riceDataFile - file name of the pre-computed K-factor data
+		 * 		7. laneWidth - width of one lane in metres
+		 * 		8. lambda - wavelength of the carrier signal
+		 * 		9. txPower - transmission power of the signal
+		 * 		10. L - losses due to the system (signal processing, etc) not related to propagation
+		 * 		11. sensitivity - the sensitivity of the receiver
+		 * 		12. lpr - The loss per reflection
+		 */
+		UraeData( const char* linksFile, const char* nodesFile, const char* classFile, const char* buildingFile, const char* linkMapFile, const char* riceDataFile, VectorMath::Real laneWidth, VectorMath::Real lambda, VectorMath::Real txPower, VectorMath::Real L, VectorMath::Real sensitivity, VectorMath::Real lpr, VectorMath::Real grid );
 
 		~UraeData();
 
@@ -200,6 +228,12 @@ namespace Urae {
 		Classification GetClassification( std::string link1, std::string link2 );
 
 		/*
+		 * Method: VectorMath::Real GetK( LinkPair p, Vector2D srcPos, Vector2D destPos );
+		 * Description: Get the pre-computed k-factor between the given source and destination.
+		 */
+		VectorMath::Real GetK( LinkPair p, VectorMath::Vector2D srcPos, VectorMath::Vector2D destPos );
+
+		/*
 		 * Method: bool LinkHasMapping( std::string linkName, int *pMapping );
 		 * Description: Returns true if the given link name is mapped to an index.
 		 */
@@ -220,10 +254,10 @@ namespace Urae {
 		void CollectBucketsInRange( VectorMath::Real r, VectorMath::Vector2D p, Bucket* );
 
 		/*
-		 * Method: void LoadNetwork( char* linksFile, char* nodesFile, const char* classFile );
-		 * Description: Loads the data from the links, nodes, and classification files.
+		 * Method: void LoadNetwork( char* linksFile, char* nodesFile, const char* classFile, const char* buildingFile, const char* linkMapFile, const char* riceDataFile );
+		 * Description: Loads the data from the links, nodes, classification, buildings, link map, and rice data files.
 		 */
-		void LoadNetwork( const char* linksFile, const char* nodesFile, const char* classFile, const char* buildingFile, const char* linkMapFile );
+		void LoadNetwork( const char* linksFile, const char* nodesFile, const char* classFile, const char* buildingFile, const char* linkMapFile, const char* riceDataFile );
 		
 		/*
 		 * Method: void ComputeSummedLinkSet();
@@ -281,6 +315,7 @@ namespace Urae {
 		ClassificationMap mClassificationMap;				// classifications
 		BuildingSet mBuildingSet;
 
+		RiceFactorMap mRiceFactorData;						// map of pre-computed K-factors
 
 	};
 

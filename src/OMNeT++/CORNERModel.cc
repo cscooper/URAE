@@ -95,6 +95,12 @@ void CORNERModel::filterSignal( AirFrame *frame, const Coord& sendersPos, const 
 	bool rxHasMapping = UraeData::GetSingleton()->LinkHasMapping( pMobTx->getRoadId(), &rxIndex );
 	UraeData::Classification c;
 
+	Coord posT = pManager->ConvertCoords( sendersPos );
+	Coord posR = pManager->ConvertCoords( receiverPos );
+	Vector2D vTx = Vector2D(posT.x, posT.y);
+	Vector2D vRx = Vector2D(posR.x, posR.y);
+
+	// Get the CORNER classification
 	if ( txHasMapping && rxHasMapping ) {
 
 		c = UraeData::GetSingleton()->GetClassification( txIndex, rxIndex );
@@ -102,17 +108,18 @@ void CORNERModel::filterSignal( AirFrame *frame, const Coord& sendersPos, const 
 	} else {
 
 		Classifier cls;
-		Coord posT = pManager->ConvertCoords( sendersPos );
-		Coord posR = pManager->ConvertCoords( receiverPos );
-		Vector2D vTx = Vector2D(posT.x, posT.y);
-		Vector2D vRx = Vector2D(posR.x, posR.y);
 
 		cls.CalculatePathloss( vTx, vRx );
 		c = cls.GetClassification();
 
+		txIndex = cls.GetSourceLink();
+		rxIndex = cls.GetDestinationLink();
+
 	}
 
-	
+	// get the pre-computed K-factor for this position
+	kFactor = UraeData::GetSingleton()->GetK( UraeData::LinkPair(txIndex,rxIndex), vTx, vRx );
+
 	signal.addAttenuation(
 			new CORNERMapping(
 					sendersPos,

@@ -37,7 +37,10 @@ def main( options ):
 	f.close()
 
 	# now run the cluster script
-	RunCommand( "~/Documents/ICTRCluster/omnet_cluster.py -s " + tempDir + " -j config,0:"+str(options.areaCount-1) + " -a 1 -U raytracerSim.temp.sh -S . -R ." )
+	clusterCmd = "~/Documents/ICTRCluster/omnet_cluster.py -s " + tempDir + " -j config,0:"+str(options.areaCount-1) + " -a 1 -U raytracerSim.temp.sh -S . -R ." 
+	if options.ignoreNodes:
+		clusterCmd += " -i " + options.ignoreNodes
+	RunCommand( clusterCmd )
 
 	# get the list of files containing k-factor results
 	riceData = []
@@ -68,22 +71,6 @@ def main( options ):
 
 	print "Complete."
 
-	
-
-
-typedef std::pair<int,int> LinkPair;
-typedef std::pair<Vector2D,Vector2D> SrcDestPair;
-
-struct RiceFactorEntry {
-
-	SrcDestPair mSrcDestPair;
-	Real mKfactor;
-
-};
-
-typedef std::vector<RiceFactorEntry> RiceFactorData;
-typedef std::map<LinkPair,RiceFactorData> RiceFactorMap;
-
 
 if __name__ == "__main__":
 	optParser = OptionParser()
@@ -95,6 +82,7 @@ if __name__ == "__main__":
 	procGroup.add_option("-c", "--cores", dest="cores", type='int', default=2, help="Number of cores to use for raytracing")
 	procGroup.add_option("-G", "--rxGain", dest="rxGain", type='float', default=1, help="The gain of the receiver antenna")
 	procGroup.add_option("-N", "--areaCount", dest="areaCount", type='int', default=4, help="The number of areas to divide the map into")
+	procGroup.add_option("-I", "--ignoreNodes", dest="ignoreNodes", type='string', help="Specify nodes on the cluster to ignore (comma delimited).")
 	optParser.add_option_group(procGroup)
 
 	(options, args) = optParser.parse_args()

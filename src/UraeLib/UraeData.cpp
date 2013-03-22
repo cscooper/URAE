@@ -141,13 +141,60 @@ UraeData::UraeData(
 	mLambdaBy4PiSq = pow( mWavelength / (4 * M_PI), 2 );
 	mFreeSpaceRange = sqrt( mLambdaBy4PiSq * mTransmitPower / ( mSystemLoss * mSensitivity ) );
 
-	LoadNetwork( linksFile, nodesFile, classFile, buildingFile, linkMapFile );
+	LoadNetwork( linksFile, nodesFile, classFile, buildingFile, linkMapFile, NULL );
 	ComputeSummedLinkSet();
 	ComputeBuckets();
 
 }
 
 
+
+/*
+ * Constructor Arguments:
+ * 		1. linksFile - file name of the CORNER links file
+ * 		2. nodesFile - file name of the CORNER nodes file
+ * 		3. classFile - file name of the CORNER class file
+ * 		4. buildingFile - file name of the CORNER building file
+ * 		5. linkMapFile - file name of the CORNER link mapping file
+ * 		6. riceDataFile - file name of the pre-computed K-factor data
+ * 		7. laneWidth - width of one lane in metres
+ * 		8. lambda - wavelength of the carrier signal
+ * 		9. txPower - transmission power of the signal
+ * 		10. L - losses due to the system (signal processing, etc) not related to propagation
+ * 		11. sensitivity - the sensitivity of the receiver
+ * 		12. lpr - The loss per reflection
+ */
+UraeData::UraeData(
+		const char* linksFile,
+		const char* nodesFile,
+		const char* classFile,
+		const char* buildingFile,
+		const char* linkMapFile, 
+		const char* riceDataFile, 
+		VectorMath::Real laneWidth, 
+		VectorMath::Real lambda, 
+		VectorMath::Real txPower, 
+		VectorMath::Real L, 
+		VectorMath::Real sensitivity, 
+		VectorMath::Real lpr, 
+		VectorMath::Real grid ) { 
+
+	mLaneWidth = laneWidth;
+	mWavelength = lambda;
+	mTransmitPower = txPower;
+	mSystemLoss = L; 
+	mSensitivity = sensitivity; 
+	mLossPerReflection = lpr; 
+	mGridSize = grid; 
+	mBucketSize = grid; 
+	mLambdaBy4PiSq = pow( mWavelength / (4 * M_PI), 2 );
+	mFreeSpaceRange = sqrt( mLambdaBy4PiSq * mTransmitPower / ( mSystemLoss * mSensitivity ) );
+
+	LoadNetwork( linksFile, nodesFile, classFile, NULL, linkMapFile, riceDataFile );
+	ComputeSummedLinkSet();
+	ComputeBuckets();
+
+}
 
 
 UraeData::~UraeData() {
@@ -292,6 +339,36 @@ UraeData::Classification UraeData::GetClassification( std::string link1, std::st
 }
 
 
+
+/*
+ * Method: VectorMath::Real GetK( LinkPair p, Vector2D srcPos, Vector2D destPos );
+ * Description: Get the pre-computed k-factor between the given source and destination.
+ */
+Real UraeData::GetK( UraeData::LinkPair p, Vector2D srcPos, Vector2D destPos ) {
+
+	Real k = 0;
+	Real sMin = DBL_MAX, dMin = DBL_MAX;
+	RiceFactorData::iterator riceIt;
+	for ( AllInVector( riceIt, mRiceFactorData[p] ) ) {
+
+		Real sDiff = (     riceIt->mSource- srcPos).MagnitudeSq();
+		Real dDiff = (riceIt->mDestination-destPos).MagnitudeSq();
+
+		if ( sMin >= sDiff && dMin >= dDiff ) {
+			sMin = sDiff;
+			dMin = dDiff;
+			k = riceIt->mKfactor;
+		}
+
+	}
+
+	return k;
+
+}
+
+
+
+
 /*
  * Method: bool LinkHasMapping( std::string linkName, int *pMapping );
  * Description: Returns true if the given link name is mapped to an index.
@@ -325,125 +402,32 @@ UraeData::Grid* UraeData::GetGrid(Vector2D position) {
 }
 
 /*
- * Method: void LoadNetwork( char* linksFile, char* nodesFile, const char* classFile, const char* buildingFile );
+ * Method: void LoadNetwork( char* linksFile, char* nodesFile, const char* classFile, const char* buildingFile, const char* linkMapFile, const char* riceDataFile );
  * Description: Loads the data from the links and nodes files.
  */
-void UraeData::LoadNetwork( const char* linksFile, const char* nodesFile, const char* classFile, const char* buildingFile, const char* linkMapFile ) {
+void UraeData::LoadNetwork( const char* linksFile, const char* nodesFile, const char* classFile, const char* buildingFile, const char* linkMapFile, const char* riceDataFile ) {
 	ifstream stream;
 	char buffer[20];
 
-	//create temporary buffers to read in nodeIDs, and the nodeA and nodeB identifiers for links
-	int numNodesInFile, numLinksInFile, numClassInFile, numBuildingsInFile, numLinkMappings;
+	int numNodesInFile, numLinksInFile, numClassInFile, numBuildingsInFile, numLinkMappings, numRice;
+	Vector2D topLeft, bottomRight;
+	UraeData::Node tempNode;
+	UraeData::Link tempLink;
 
 	// read the nodes file
-	stream.open( nodesFile );
-	if ( stream.fail() ) {
-		THROW_EXCEPTION( "Cannot open nodes file: %s", nodesFile );
-	}
+	if ( nodesFile ) { 
 
-	stream >> dec >> numNodesInFile;
-
-	Vector2D topLeft, bottomRight;
-
-	mNodeSet.reserve(numNodesInFile);
-
-	UraeData::Node tempNode;
-	for(int n = 0; n < numNodesInFile; n++) {
-		stream >> tempNode.index >> tempNode.position.x >> tempNode.position.y;
-		if ( topLeft.x > tempNode.position.x )
-			topLeft.x = tempNode.position.x;
-		if ( bottomRight.x < tempNode.position.x )
-			bottomRight.x = tempNode.position.x;
-		if ( topLeft.y > tempNode.position.y )
-			topLeft.y = tempNode.position.y;
-		if ( bottomRight.y < tempNode.position.y )
-			bottomRight.y = tempNode.position.y;
-		mNodeSet.push_back(tempNode);
-	}
- 
-	stream.close();
-
-	// read the links file
-	stream.open( linksFile );
-	if ( stream.fail() ) {
-		THROW_EXCEPTION( "Cannot open links file: %s", linksFile );
-	}
-
-	stream >> dec >> numLinksInFile;
-
-	mLinkSet.reserve(numLinksInFile);
-	UraeData::Link tempLink;
-	for(int l = 0; l < numLinksInFile; l++)
-	{
-		stream >> tempLink.index
-			   >> tempLink.nodeAindex
-			   >> tempLink.nodeBindex
-			   >> tempLink.NumberOfLanes
-			   >> buffer // Boarder segment is not in use
-			   >> tempLink.flow
-			   >> tempLink.speed;
-		mLinkSet.push_back(tempLink);
-	}
-
-	stream.close();
-
-	// read the classification files
-	stream.open( classFile );
-	if ( stream.fail() ) {
-		THROW_EXCEPTION( "Cannot open classification file: %s", classFile );
-	}
-
-	stream >> dec >> numClassInFile;
-	pair<int,int> linkPair;
-	int link1, link2;
-
-	Classification tempClass;
-	for(int c = 0; c < numClassInFile; c++ ) {
-
-		stream >> link1 >> link2 >> tempClass.mClassification >> tempClass.mFullNodeCount;
-
-		if ( tempClass.mClassification == Classifier::NLOS1 || tempClass.mClassification == Classifier::NLOS2 ) {
-			stream >> tempClass.mMainStreetLaneCount;
-			stream >> tempClass.mSideStreetLaneCount;
-			if ( tempClass.mClassification == Classifier::NLOS2 )
-				stream >> tempClass.mParaStreetLaneCount;
+		stream.open( nodesFile );
+		if ( stream.fail() ) {
+			THROW_EXCEPTION( "Cannot open nodes file: %s", nodesFile );
 		}
 
-		if ( tempClass.mClassification != Classifier::LOS ) {
+		stream >> dec >> numNodesInFile;
 
-			for ( int n = 0; n < tempClass.mClassification; n++ ) {
+		mNodeSet.reserve(numNodesInFile);
 
-				stream >> tempClass.mNodeSet[ n ];
-
-			}
-
-		}
-
-		linkPair.first = link1;
-		linkPair.second = link2;
-		mClassificationMap[ linkPair ] = tempClass;
-
-	}
-
-	stream.close();
-	
-	// read the building files
-	stream.open( buildingFile );
-	if ( stream.fail() ) {
-		THROW_EXCEPTION( "Cannot open building file: %s", buildingFile );
-	}
-
-	stream >> dec >> numBuildingsInFile;
-	int vertexCount, tmp;
-	Vector2D v1, v2;
-
-	Building tempBuilding;
-	for(int c = 0; c < numBuildingsInFile; c++ ) {
-
-		tempBuilding.mId = c;
-		stream >> tmp >> tempBuilding.mPermitivity >> tempBuilding.mMaxHeight >> tempBuilding.mHeightStdDev >> vertexCount >> v1.x >> v1.y;
-		for ( int v = 0; v < vertexCount-1; v++ ) {
-
+		for(int n = 0; n < numNodesInFile; n++) {
+			stream >> tempNode.index >> tempNode.position.x >> tempNode.position.y;
 			if ( topLeft.x > tempNode.position.x )
 				topLeft.x = tempNode.position.x;
 			if ( bottomRight.x < tempNode.position.x )
@@ -452,37 +436,177 @@ void UraeData::LoadNetwork( const char* linksFile, const char* nodesFile, const 
 				topLeft.y = tempNode.position.y;
 			if ( bottomRight.y < tempNode.position.y )
 				bottomRight.y = tempNode.position.y;
+			mNodeSet.push_back(tempNode);
+		}
+	
+		stream.close();
 
-			stream >> v2.x >> v2.y;
-			tempBuilding.mEdgeSet.push_back( LineSegment( v1, v2 ) );
-			v1 = v2;
+	}
+
+	// read the links file
+	if ( linksFile ) {
+
+		stream.open( linksFile );
+		if ( stream.fail() ) {
+			THROW_EXCEPTION( "Cannot open links file: %s", linksFile );
+		}
+
+		stream >> dec >> numLinksInFile;
+
+		mLinkSet.reserve(numLinksInFile);
+		for(int l = 0; l < numLinksInFile; l++)
+		{
+			stream >> tempLink.index
+				>> tempLink.nodeAindex
+				>> tempLink.nodeBindex
+				>> tempLink.NumberOfLanes
+				>> buffer // Boarder segment is not in use
+				>> tempLink.flow
+				>> tempLink.speed;
+			mLinkSet.push_back(tempLink);
+		}
+
+		stream.close();
+
+	}
+
+	// read the classification files
+	if ( classFile ) {
+
+		stream.open( classFile );
+		if ( stream.fail() ) {
+			THROW_EXCEPTION( "Cannot open classification file: %s", classFile );
+		}
+
+		stream >> dec >> numClassInFile;
+		pair<int,int> linkPair;
+		int link1, link2;
+
+		Classification tempClass;
+		for(int c = 0; c < numClassInFile; c++ ) {
+
+			stream >> link1 >> link2 >> tempClass.mClassification >> tempClass.mFullNodeCount;
+
+			if ( tempClass.mClassification == Classifier::NLOS1 || tempClass.mClassification == Classifier::NLOS2 ) {
+				stream >> tempClass.mMainStreetLaneCount;
+				stream >> tempClass.mSideStreetLaneCount;
+				if ( tempClass.mClassification == Classifier::NLOS2 )
+					stream >> tempClass.mParaStreetLaneCount;
+			}
+
+			if ( tempClass.mClassification != Classifier::LOS ) {
+
+				for ( int n = 0; n < tempClass.mClassification; n++ ) {
+
+					stream >> tempClass.mNodeSet[ n ];
+
+				}
+
+			}
+
+			linkPair.first = link1;
+			linkPair.second = link2;
+			mClassificationMap[ linkPair ] = tempClass;
 
 		}
 
-		mBuildingSet.push_back( tempBuilding );
-		tempBuilding.mEdgeSet.clear();
+		stream.close();
 
 	}
 
-	stream.close();
+	// read the building files
+	if ( buildingFile ) {
+
+		stream.open( buildingFile );
+		if ( stream.fail() ) {
+			THROW_EXCEPTION( "Cannot open building file: %s", buildingFile );
+		}
+
+		stream >> dec >> numBuildingsInFile;
+		int vertexCount, tmp;
+		Vector2D v1, v2;
+
+		Building tempBuilding;
+		for(int c = 0; c < numBuildingsInFile; c++ ) {
+
+			tempBuilding.mId = c;
+			stream >> tmp >> tempBuilding.mPermitivity >> tempBuilding.mMaxHeight >> tempBuilding.mHeightStdDev >> vertexCount >> v1.x >> v1.y;
+			for ( int v = 0; v < vertexCount-1; v++ ) {
+
+				if ( topLeft.x > tempNode.position.x )
+					topLeft.x = tempNode.position.x;
+				if ( bottomRight.x < tempNode.position.x )
+					bottomRight.x = tempNode.position.x;
+				if ( topLeft.y > tempNode.position.y )
+					topLeft.y = tempNode.position.y;
+				if ( bottomRight.y < tempNode.position.y )
+					bottomRight.y = tempNode.position.y;
+
+				stream >> v2.x >> v2.y;
+				tempBuilding.mEdgeSet.push_back( LineSegment( v1, v2 ) );
+				v1 = v2;
+
+			}
+
+			mBuildingSet.push_back( tempBuilding );
+			tempBuilding.mEdgeSet.clear();
+
+		}
+
+		stream.close();
+
+	}
 
 	// read the link mappings
-	stream.open( linkMapFile );
-	if ( stream.fail() ) {
-		THROW_EXCEPTION( "Cannot open link mapping file: %s", linkMapFile );
+	if ( linkMapFile ) {
+
+		stream.open( linkMapFile );
+		if ( stream.fail() ) {
+			THROW_EXCEPTION( "Cannot open link mapping file: %s", linkMapFile );
+		}
+
+		stream >> dec >> numLinkMappings;
+		for ( int c = 0; c < numLinkMappings; c++ ) {
+
+			std::string strTmp;
+			int index;
+			stream >> strTmp >> index;
+			mLinkIndexMap[ strTmp ] = index;
+
+		}
+
+		stream.close();
+
 	}
 
-	stream >> dec >> numLinkMappings;
-	for ( int c = 0; c < numLinkMappings; c++ ) {
+	// read the pre-computed K-factors
+	if ( riceDataFile ) {
 
-		std::string strTmp;
-		int index;
-		stream >> strTmp >> index;
-		mLinkIndexMap[ strTmp ] = index;
+		stream.open( riceDataFile );
+		if ( stream.fail() ) {
+			THROW_EXCEPTION( "Cannot open Rice datafile: %s", riceDataFile );
+		}
+
+		stream >> dec >> numRice;
+		for ( int c = 0; c < numRice; c++ ) {
+
+			LinkPair p;
+			int nPoints = 0;
+			stream >> p.first >> p.second >> nPoints;
+			mRiceFactorData[p] = RiceFactorData();
+			for ( int n = 0; n < nPoints; n++ ) {
+
+				RiceFactorEntry e;
+				stream >> e.mSource.x >> e.mSource.y >> e.mDestination.x >> e.mDestination.y >> e.mKfactor;
+				mRiceFactorData[p].push_back( e );
+
+			}
+
+		}
+
+		stream.close();
 
 	}
-
-	stream.close();
 
 	mMapRect.location = topLeft;
 	mMapRect.size = bottomRight - topLeft;
