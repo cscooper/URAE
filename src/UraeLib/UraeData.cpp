@@ -141,7 +141,7 @@ UraeData::UraeData(
 	mLambdaBy4PiSq = pow( mWavelength / (4 * M_PI), 2 );
 	mFreeSpaceRange = sqrt( mLambdaBy4PiSq * mTransmitPower / ( mSystemLoss * mSensitivity ) );
 
-	LoadNetwork( linksFile, nodesFile, classFile, buildingFile, linkMapFile, NULL );
+	LoadNetwork( linksFile, nodesFile, classFile, buildingFile, linkMapFile, NULL, NULL );
 	ComputeSummedLinkSet();
 	ComputeBuckets();
 
@@ -157,12 +157,13 @@ UraeData::UraeData(
  * 		4. buildingFile - file name of the CORNER building file
  * 		5. linkMapFile - file name of the CORNER link mapping file
  * 		6. riceDataFile - file name of the pre-computed K-factor data
- * 		7. laneWidth - width of one lane in metres
- * 		8. lambda - wavelength of the carrier signal
- * 		9. txPower - transmission power of the signal
- * 		10. L - losses due to the system (signal processing, etc) not related to propagation
- * 		11. sensitivity - the sensitivity of the receiver
- * 		12. lpr - The loss per reflection
+ * 		7. carDefFile - file name of the pre-computed K-factor data
+ * 		8. laneWidth - width of one lane in metres
+ * 		9. lambda - wavelength of the carrier signal
+ * 		10. txPower - transmission power of the signal
+ * 		11. L - losses due to the system (signal processing, etc) not related to propagation
+ * 		12. sensitivity - the sensitivity of the receiver
+ * 		13. lpr - The loss per reflection
  */
 UraeData::UraeData(
 		const char* linksFile,
@@ -171,6 +172,7 @@ UraeData::UraeData(
 		const char* buildingFile,
 		const char* linkMapFile, 
 		const char* riceDataFile, 
+		const char* carDefFile, 
 		VectorMath::Real laneWidth, 
 		VectorMath::Real lambda, 
 		VectorMath::Real txPower, 
@@ -190,7 +192,7 @@ UraeData::UraeData(
 	mLambdaBy4PiSq = pow( mWavelength / (4 * M_PI), 2 );
 	mFreeSpaceRange = sqrt( mLambdaBy4PiSq * mTransmitPower / ( mSystemLoss * mSensitivity ) );
 
-	LoadNetwork( linksFile, nodesFile, classFile, NULL, linkMapFile, riceDataFile );
+	LoadNetwork( linksFile, nodesFile, classFile, NULL, linkMapFile, riceDataFile, carDefFile );
 	ComputeSummedLinkSet();
 	ComputeBuckets();
 
@@ -402,14 +404,14 @@ UraeData::Grid* UraeData::GetGrid(Vector2D position) {
 }
 
 /*
- * Method: void LoadNetwork( char* linksFile, char* nodesFile, const char* classFile, const char* buildingFile, const char* linkMapFile, const char* riceDataFile );
+ * Method: void LoadNetwork( char* linksFile, char* nodesFile, const char* classFile, const char* buildingFile, const char* linkMapFile, const char* riceDataFile, const char* carDefFile );
  * Description: Loads the data from the links and nodes files.
  */
-void UraeData::LoadNetwork( const char* linksFile, const char* nodesFile, const char* classFile, const char* buildingFile, const char* linkMapFile, const char* riceDataFile ) {
+void UraeData::LoadNetwork( const char* linksFile, const char* nodesFile, const char* classFile, const char* buildingFile, const char* linkMapFile, const char* riceDataFile, const char* carDefFile ) {
 	ifstream stream;
 	char buffer[20];
 
-	int numNodesInFile, numLinksInFile, numClassInFile, numBuildingsInFile, numLinkMappings, numRice;
+	int numNodesInFile, numLinksInFile, numClassInFile, numBuildingsInFile, numLinkMappings, numRice, numCars;
 	Vector2D topLeft, bottomRight;
 	UraeData::Node tempNode;
 	UraeData::Link tempLink;
@@ -608,6 +610,32 @@ void UraeData::LoadNetwork( const char* linksFile, const char* nodesFile, const 
 
 	}
 
+	// read the car definitions
+	if ( carDefFile ) {
+
+		stream.open( carDefFile );
+		if ( stream.fail() ) {
+			THROW_EXCEPTION( "Cannot open car definitions file: %s", carDefFile );
+		}
+
+		stream >> dec >> numCars;
+		for ( int c = 0; c < numCars; c++ ) {
+
+			std::string strName;
+			stream >> strName
+				   >> mCarDefinitions[strName].mAcceleration
+				   >> mCarDefinitions[strName].mDeceleration
+				   >> mCarDefinitions[strName].mDriverImperfection
+				   >> mCarDefinitions[strName].mLength
+				   >> mCarDefinitions[strName].mWidth
+				   >> mCarDefinitions[strName].mHeight;
+
+		}
+
+		stream.close();
+
+	}
+	
 	mMapRect.location = topLeft;
 	mMapRect.size = bottomRight - topLeft;
 
@@ -742,13 +770,12 @@ void UraeData::ComputeBuckets() {
 
 
 /*
- * Method: double GetVehicleClassHeight( std::string );
- * Description: Get the height of vehicles of the given class.
+ * Method: VectorMath::Vector3D GetVehicleClassDimensions( std::string );
+ * Description: Get the width (x), length (y), and height (z) of vehicles of the given class.
  */
-double UraeData::GetVehicleClassHeight( std::string strName ) {
+Vector3D GetVehicleClassDimensions( std::string strName ) {
 
-	// TODO: GET HEIGHTS FOR THE VEHICLE CLASSES
-	return 2;
+	return Vector3D( mCarDefinitions[strName].mWidth, mCarDefinitions[strName].mLength, mCarDefinitions[strName].mHeight );
 
 }
 

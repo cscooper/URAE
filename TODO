@@ -10,7 +10,7 @@
 
 4. Modify UraeData to load precomputed raytracer results - Done, but untested.
 
-5. Create a table with vehicle heights for corresponding classes - GetVehicleClassHeight has only a place holder at the moment
+5. Create a table with vehicle heights for corresponding classes - Done, but untested
 
 6. QualNet capability
 

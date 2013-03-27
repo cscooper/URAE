@@ -16,7 +16,7 @@
 #include <TraCIMobility.h>
 #include <queue>
 
-#include "ExperimentScenarioManager.h"
+#include "TraCIScenarioManager.h"
 #include "CarShadowModel.h"
 #include "CarMobility.h"
 #include "BaseWorldUtility.h"
@@ -78,7 +78,7 @@ void CarShadowModel::filterSignal( AirFrame *frame, const Coord& sendersPos, con
 
 	Signal& signal = frame->getSignal();
 
-	ExperimentScenarioManager *pManager = ExperimentScenarioManagerAccess().get();
+	TraCIScenarioManager *pManager = TraCIScenarioManagerAccess().get();
 
 	LineSegment l;
 	l.mStart = Vector2D(  sendersPos.x,  sendersPos.y );
@@ -92,7 +92,7 @@ void CarShadowModel::filterSignal( AirFrame *frame, const Coord& sendersPos, con
 	if ( !pSenderMob )
 		return;
 
-	double txHeight = UraeData::GetSingleton()->GetVehicleClassHeight( pSenderMob->commandGetVehicleClass() );
+	double txHeight = UraeData::GetSingleton()->GetVehicleClassDimensions( pSenderMob->commandGetVehicleClass() ).z;
 
 	bool bFound = false;
 
@@ -123,10 +123,9 @@ void CarShadowModel::filterSignal( AirFrame *frame, const Coord& sendersPos, con
 		heading2 = Vector2D( heading1.y, -heading1.x );
 		LineSegment d1, d2;
 
-		double currLength = pMob->commandGetVehicleLength();
-		double currWidth = pMob->commandGetVehicleWidth();
-		d1 = LineSegment( p+heading1*currLength/2+heading2*currWidth/2, p-heading1*currLength/2-heading2*currWidth/2 );
-		d2 = LineSegment( p+heading1*currLength/2-heading2*currWidth/2, p-heading1*currLength/2+heading2*currWidth/2 );
+		Vector3D currDims = UraeData::GetSingleton()->GetVehicleClassDimensions( pMob->commandGetVehicleClass() );
+		d1 = LineSegment( p+heading1*currDims.y/2+heading2*currDims.x/2, p-heading1*currDims.y/2-heading2*currDims.x/2 );
+		d2 = LineSegment( p+heading1*currDims.y/2-heading2*currDims.x/2, p-heading1*currDims.y/2+heading2*currDims.x/2 );
 
 		bool d1Int = d1.IntersectLine( l, &v1 ), d2Int = d2.IntersectLine( l, &v2 );
 
