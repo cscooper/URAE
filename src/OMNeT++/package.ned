@@ -13,22 +13,4 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-#ifndef URAEPHYLAYER_H_
-#define URAEPHYLAYER_H_
-
-#include <queue>
-#include "PhyLayer80211p.h"
-
-class UraePhyLayer: public PhyLayer {
-public:
-	UraePhyLayer();
-	virtual ~UraePhyLayer();
-
-	virtual void initialize(int stage);
-
-protected:
-	virtual AnalogueModel* getAnalogueModelFromName( std::string name, ParameterMap& params );
-
-};
-
-#endif /* CORNERPHYLAYER_H_ */
+package urae;

@@ -13,24 +13,28 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-package raytracerexperiment.CORNER;
+package Urae.UraePhyLayer;
 import org.mixim.modules.phy.PhyLayer;
 
 //
 // TODO auto-generated module
 //
-simple CORNERPhyLayer extends PhyLayer
+simple UraePhyLayer extends PhyLayer
 {
     parameters:
-        @class("CORNERPhyLayer");
-        bool useRaytracing = default(false);	// If false, use constant K factor
-        double constantK = default(0);
-        bool useVehicles = default(false);
-        int rayCount = default(128);
-        double gain = default(1);
-        int threadCount = default(2);
-		double carLPF = default(5);
-		double raytraceDistance @unit(m) = default(1m);
-		bool recordData = default(false);
-//		double raytraceLifetime @unit(s) = default(1s);
+        @class("UraePhyLayer");
+		string linksFile = default("");
+		string nodesFile = default("");
+		string classFile = default("");
+		string riceFile = default("");
+		string carDefFile = default("");
+		double laneWidth @unit("m") = default(5m);
+		double waveLength @unit("m") = default(0.125m);
+		double txPower @unit("mW") = default(80mW);
+		double systemLoss = default(1142.9);
+		double sensitivity @unit("dBm") = default(-110dBm);
+		double lossPerReflection = default(0.75);
+		string componentFile = default("default.fading");
+		int randSeed = default(1234);
+
 }

@@ -39,6 +39,10 @@ RT_OBJ_DIR=$(OBJ_DIR)/Raytracer
 RT_BIN=$(BIN_DIR)/Raytracer
 RT_LIBS=-l$(LIBNAME) -lpthread
 
+OMNETPP_SRC_DIR=$(SRC_DIR)/OMNeT++
+OMNETPP_OBJ_DIR=$(OBJ_DIR)/OMNeT++
+OMNETPP_SO=$(LIB_DIR)/liburae_omnetpp.so
+
 LIBRARY=$(LIB)
 
 Library : $(SRC) $(LIB)
@@ -57,6 +61,10 @@ $(RT_BIN) : $(RT_OBJ)
 
 $(RT_OBJ_DIR)/%.o : $(RT_SRC_DIR)/%.cpp
 	$(CC) $(FLAGS) -c $< -o $@ $(INCLUDE)
+
+OMNETPP : $(LIB)
+	cd $(OMNETPP_SRC_DIR)
+	opp_makemake
 
 clean:
 	rm -f $(RT_BIN)
