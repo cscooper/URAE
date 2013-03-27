@@ -18,7 +18,6 @@
 
 #include "TraCIScenarioManager.h"
 #include "CarShadowModel.h"
-#include "CarMobility.h"
 #include "BaseWorldUtility.h"
 #include "AirFrame_m.h"
 #include "ChannelAccess.h"
@@ -108,7 +107,7 @@ void CarShadowModel::filterSignal( AirFrame *frame, const Coord& sendersPos, con
 
 	for ( AllInVector( it, (*pCars) ) ) {
 
-		TracIMobility *pMob = dynamic_cast<TracIMobility*>(it->second->getSubmodule("mobility",-1));
+		TraCIMobility *pMob = dynamic_cast<TraCIMobility*>(it->second->getSubmodule("mobility",-1));
 
 		Coord vPos = pMob->getCurrentPosition();
 
@@ -131,7 +130,7 @@ void CarShadowModel::filterSignal( AirFrame *frame, const Coord& sendersPos, con
 
 		if ( d1Int || d2Int ) {
 
-			double h1 = UraeData::GetSingleton()->GetVehicleClassHeight( pMob->commandGetVehicleClass() ) - txHeight, h2, h3, dTx, dRx;
+			double h1 = currDims.z - txHeight, h2, h3, dTx, dRx;
 			if ( d1Int ) {
 				h2 = (d1.mStart-v1).Magnitude();
 				h3 = (  d1.mEnd-v1).Magnitude();

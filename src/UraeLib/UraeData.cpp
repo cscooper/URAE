@@ -773,7 +773,7 @@ void UraeData::ComputeBuckets() {
  * Method: VectorMath::Vector3D GetVehicleClassDimensions( std::string );
  * Description: Get the width (x), length (y), and height (z) of vehicles of the given class.
  */
-Vector3D GetVehicleClassDimensions( std::string strName ) {
+Vector3D UraeData::GetVehicleClassDimensions( std::string strName ) {
 
 	return Vector3D( mCarDefinitions[strName].mWidth, mCarDefinitions[strName].mLength, mCarDefinitions[strName].mHeight );
 

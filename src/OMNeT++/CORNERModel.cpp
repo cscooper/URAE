@@ -15,7 +15,7 @@
 
 #include <TraCIMobility.h>
 
-#include "ExperimentScenarioManager.h"
+#include "TraCIScenarioManager.h"
 #include "CORNERModel.h"
 
 #include "BaseWorldUtility.h"
@@ -42,9 +42,9 @@ CORNERMapping::CORNERMapping( Coord tPos, Coord rPos, double k, Urae::UraeData::
 
 double CORNERMapping::getValue( const Argument& pos ) const {
 
-	ExperimentScenarioManager *pManager = ExperimentScenarioManagerAccess().get();
-	Coord posT = pManager->ConvertCoords( txPos );
-	Coord posR = pManager->ConvertCoords( rxPos );
+	TraCIScenarioManager *pManager = TraCIScenarioManagerAccess().get();
+	TraCIScenarioManager::TraCICoord posT = pManager->omnet2traci( txPos );
+	TraCIScenarioManager::TraCICoord posR = pManager->omnet2traci( rxPos );
 
     Vector2D vTx = Vector2D(posT.x, posT.y);
     Vector2D vRx = Vector2D(posR.x, posR.y);
@@ -52,7 +52,7 @@ double CORNERMapping::getValue( const Argument& pos ) const {
     // get classification...
     Classifier classifier(mClassification);
     double PL = classifier.CalculatePathloss( vTx, vRx ) / UraeData::GetSingleton()->GetSystemLoss();
-    double fading = Fading::GetSingleton()->CalculateFading( mClassification, kFactor );
+    double fading = Fading::GetSingleton()->CalculateFading( mClassification.mClassification, kFactor );
 
     return PL * fading;
 
@@ -75,38 +75,32 @@ void CORNERModel::filterSignal( AirFrame *frame, const Coord& sendersPos, const 
 	Signal& signal = frame->getSignal();
 	double kFactor = 0;
 
-	Coord pos;
+	TraCIScenarioManager *pManager = TraCIScenarioManagerAccess().get();
 
-	ExperimentScenarioManager *pManager = ExperimentScenarioManagerAccess().get();
-    pos = pManager->ConvertCoords( receiverPos );
-    Vector2D destLocation = VectorMath::Vector2D( pos.x, pos.y );
-
-// 	if ( frame->hasPar( "rayTrace" ) ) {
-// 		kFactor = ((Raytracer*)frame->par("rayTrace").pointerValue())->ComputeK( destLocation, 1 );
-// 	} else if ( frame->hasPar( "riceanK" ) ) {
-// 		kFactor = frame->par( "riceanK" ).doubleValue();
-// 	}
-
-	TraCIMobility *pMobTx = dynamic_cast<TraCIMobility*>(frame->getSenderModule())->getMobilityModule();
-	TraCIMobility *pMobRx = dynamic_cast<TraCIMobility*>(frame->getArrivalModule())->getMobilityModule();
+	TraCIMobility *pMobTx = dynamic_cast<TraCIMobility*>(dynamic_cast<ChannelAccess *const>(frame->getSenderModule())->getMobilityModule());
+	TraCIMobility *pMobRx = dynamic_cast<TraCIMobility*>(dynamic_cast<ChannelAccess *const>(frame->getArrivalModule())->getMobilityModule());
 
 	int txIndex, rxIndex;
 	bool txHasMapping = UraeData::GetSingleton()->LinkHasMapping( pMobTx->getRoadId(), &txIndex );
-	bool rxHasMapping = UraeData::GetSingleton()->LinkHasMapping( pMobTx->getRoadId(), &rxIndex );
+	bool rxHasMapping = UraeData::GetSingleton()->LinkHasMapping( pMobRx->getRoadId(), &rxIndex );
 	UraeData::Classification c;
 
-	Coord posT = pManager->ConvertCoords( sendersPos );
-	Coord posR = pManager->ConvertCoords( receiverPos );
+	TraCIScenarioManager::TraCICoord posR = pManager->omnet2traci( receiverPos );
+	TraCIScenarioManager::TraCICoord posT = pManager->omnet2traci( sendersPos );
 	Vector2D vTx = Vector2D(posT.x, posT.y);
 	Vector2D vRx = Vector2D(posR.x, posR.y);
 
 	// Get the CORNER classification
 	if ( txHasMapping && rxHasMapping ) {
 
+		// the source and destination are on edges for which we have a mapping
 		c = UraeData::GetSingleton()->GetClassification( txIndex, rxIndex );
 
 	} else {
 
+		// Either the source or destination are on an internal edge.
+		// Currently we have no mappings to a classification for internal
+		// edges, and so must manually calculate one
 		Classifier cls;
 
 		cls.CalculatePathloss( vTx, vRx );

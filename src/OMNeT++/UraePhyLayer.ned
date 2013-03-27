@@ -26,6 +26,7 @@ simple UraePhyLayer extends PhyLayer
 		string linksFile = default("");
 		string nodesFile = default("");
 		string classFile = default("");
+		string linkMapFile = default("");
 		string riceFile = default("");
 		string carDefFile = default("");
 		double laneWidth @unit("m") = default(5m);

@@ -45,7 +45,7 @@ protected:
 	Coord txPos;
 	Coord rxPos;
 	double kFactor;
-	Urae::UraeData::Classification mClassifcation;
+	Urae::UraeData::Classification mClassification;
 
 public:
 	CORNERMapping( Coord tPos,

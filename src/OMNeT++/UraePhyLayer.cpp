@@ -58,8 +58,9 @@ void UraePhyLayer::initialize(int stage) {
 								par("nodesFile").stringValue(),
 								par("classFile").stringValue(),
 								NULL,
-								par("riceFile").stringValue()
-								par("carDefFile").stringValue()
+								par("linkMapFile").stringValue(),
+								par("riceFile").stringValue(),
+								par("carDefFile").stringValue(),
 								par("laneWidth").doubleValue(),
 								par("waveLength").doubleValue(),
 								par("txPower").doubleValue(),
@@ -74,7 +75,7 @@ void UraePhyLayer::initialize(int stage) {
 		    opp_error("Urae Initialization failed for some reason.");
 
 		try {
-			new Urae::UraeData::Fading( par("componentFile").stringValue(), par("randSeed").longValue() );
+			new Urae::Fading( par("componentFile").stringValue(), par("randSeed").longValue() );
 		} catch (Exception &e) {
 			opp_error(e.What().c_str());
 		}

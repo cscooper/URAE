@@ -65,7 +65,7 @@ namespace Urae {
 		 */
 		VectorMath::Real CalculatePathloss( VectorMath::Vector2D source, VectorMath::Vector2D destination );
 
-		int GetClassification() { return mClassification.mClassification; }
+		UraeData::Classification GetClassification() { return mClassification; }
 		int GetSourceLink() { return mSourceLink; }
 		int GetDestinationLink() { return mDestinationLink; }
 
