@@ -13,15 +13,17 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-package urae;
-import org.mixim.modules.phy.PhyLayer;
+#include "RsuMobility.h"
 
-//
-// TODO auto-generated module
-//
-simple UraePhyLayer extends PhyLayer
+Define_Module(RsuMobility);
+
+void RsuMobility::initialize( int stage )
 {
-    parameters:
-        @class("UraePhyLayer");
-
+    // TODO - Generated method body
+    ConstSpeedMobility::initialize(stage);
+	if ( stage == 0 ) {
+		mHeight = par("height").doubleValue();
+		mRoadId = par("roadId").stringValue();
+	}
 }
+

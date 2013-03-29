@@ -24,8 +24,6 @@ public:
 	UraePhyLayer();
 	virtual ~UraePhyLayer();
 
-	virtual void initialize(int stage);
-
 protected:
 	virtual AnalogueModel* getAnalogueModelFromName( std::string name, ParameterMap& params );
 

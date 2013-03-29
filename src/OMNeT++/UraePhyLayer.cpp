@@ -38,54 +38,8 @@ UraePhyLayer::UraePhyLayer() {
 
 UraePhyLayer::~UraePhyLayer() {
 	// TODO Auto-generated destructor stub
-
-	if ( Urae::UraeData::GetSingleton() )
-		delete Urae::UraeData::GetSingleton();
-	if ( Urae::Fading::GetSingleton() )
-		delete Urae::Fading::GetSingleton();
-
 }
 
-
-
-void UraePhyLayer::initialize(int stage) {
-
-	PhyLayer::initialize( stage );
-	if ( stage == 0 ) {
-
-		try {
-			new Urae::UraeData( par("linksFile").stringValue(),
-								par("nodesFile").stringValue(),
-								par("classFile").stringValue(),
-								NULL,
-								par("linkMapFile").stringValue(),
-								par("riceFile").stringValue(),
-								par("carDefFile").stringValue(),
-								par("laneWidth").doubleValue(),
-								par("waveLength").doubleValue(),
-								par("txPower").doubleValue(),
-								par("systemLoss").doubleValue(),
-								FWMath::dBm2mW( par("sensitivity").doubleValue() ),
-								par("lossPerReflection").doubleValue(), 200 );
-		} catch (Exception &e) {
-			opp_error(e.What().c_str());
-		}
-
-		if ( Urae::UraeData::GetSingleton() == NULL )
-		    opp_error("Urae Initialization failed for some reason.");
-
-		try {
-			new Urae::Fading( par("componentFile").stringValue(), par("randSeed").longValue() );
-		} catch (Exception &e) {
-			opp_error(e.What().c_str());
-		}
-
-		if ( Urae::Fading::GetSingleton() == NULL )
-		    opp_error("Urae Fader failed to initialize for some reason.");
-
-	}
-
-}
 
 
 

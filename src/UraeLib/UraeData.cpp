@@ -351,6 +351,10 @@ Real UraeData::GetK( UraeData::LinkPair p, Vector2D srcPos, Vector2D destPos ) {
 	Real k = 0;
 	Real sMin = DBL_MAX, dMin = DBL_MAX;
 	RiceFactorData::iterator riceIt;
+
+	if ( mRiceFactorData.find(p) == mRiceFactorData.end() && mRiceFactorData.find( LinkPair(p.second,p.first) ) == mRiceFactorData.end() )
+		return 0;
+
 	for ( AllInVector( riceIt, mRiceFactorData[p] ) ) {
 
 		Real sDiff = (     riceIt->mSource- srcPos).MagnitudeSq();
@@ -599,7 +603,12 @@ void UraeData::LoadNetwork( const char* linksFile, const char* nodesFile, const 
 			for ( int n = 0; n < nPoints; n++ ) {
 
 				RiceFactorEntry e;
-				stream >> e.mSource.x >> e.mSource.y >> e.mDestination.x >> e.mDestination.y >> e.mKfactor;
+				std::string strK;
+				stream >> e.mSource.x >> e.mSource.y >> e.mDestination.x >> e.mDestination.y >> strK;
+				if ( strK == "inf" )
+					e.mKfactor = DBL_MAX;
+				else
+					e.mKfactor = atof( strK.c_str() );
 				mRiceFactorData[p].push_back( e );
 
 			}
@@ -770,10 +779,10 @@ void UraeData::ComputeBuckets() {
 
 
 /*
- * Method: VectorMath::Vector3D GetVehicleClassDimensions( std::string );
+ * Method: VectorMath::Vector3D GetVehicleTypeDimensions( std::string );
  * Description: Get the width (x), length (y), and height (z) of vehicles of the given class.
  */
-Vector3D UraeData::GetVehicleClassDimensions( std::string strName ) {
+Vector3D UraeData::GetVehicleTypeDimensions( std::string strName ) {
 
 	return Vector3D( mCarDefinitions[strName].mWidth, mCarDefinitions[strName].mLength, mCarDefinitions[strName].mHeight );
 

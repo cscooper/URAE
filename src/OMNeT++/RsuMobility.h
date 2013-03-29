@@ -13,15 +13,29 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-package urae;
-import org.mixim.modules.phy.PhyLayer;
+#ifndef __URAE_RSUMOBILITY_H_
+#define __URAE_RSUMOBILITY_H_
 
-//
-// TODO auto-generated module
-//
-simple UraePhyLayer extends PhyLayer
+#include <omnetpp.h>
+#include "ConstSpeedMobility.h"
+
+/**
+ * RsuMobility.
+ * This class contains a height and road ID for an RSU.
+ */
+class RsuMobility : public ConstSpeedMobility
 {
-    parameters:
-        @class("UraePhyLayer");
 
-}
+public:
+	double getHeight() { return mHeight; }
+	std::string getRoadId() { return mRoadId; }
+
+protected:
+    virtual void initialize(int);
+
+    double mHeight;			/**< The height in metres of this RSU off the ground. */
+    std::string mRoadId;	/**< The id of the road in Sumo this RSU is on. */
+
+};
+
+#endif

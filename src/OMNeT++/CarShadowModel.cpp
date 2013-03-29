@@ -16,13 +16,14 @@
 #include <TraCIMobility.h>
 #include <queue>
 
-#include "TraCIScenarioManager.h"
+#include "UraeScenarioManager.h"
 #include "CarShadowModel.h"
 #include "BaseWorldUtility.h"
 #include "AirFrame_m.h"
 #include "ChannelAccess.h"
 
 #include "UraeData.h"
+#include "RsuMobility.h"
 
 
 DimensionSet CarShadowMapping::dimensions(Dimension::time,Dimension::frequency);
@@ -77,7 +78,7 @@ void CarShadowModel::filterSignal( AirFrame *frame, const Coord& sendersPos, con
 
 	Signal& signal = frame->getSignal();
 
-	TraCIScenarioManager *pManager = TraCIScenarioManagerAccess().get();
+	UraeScenarioManager *pManager = UraeScenarioManagerAccess().get();
 
 	LineSegment l;
 	l.mStart = Vector2D(  sendersPos.x,  sendersPos.y );
@@ -88,10 +89,25 @@ void CarShadowModel::filterSignal( AirFrame *frame, const Coord& sendersPos, con
 	TraCIMobility *pSenderMob = dynamic_cast<TraCIMobility*>(dynamic_cast<ChannelAccess *const>(frame->getSenderModule())->getMobilityModule());
 	TraCIMobility *pReceiverMob = dynamic_cast<TraCIMobility*>(dynamic_cast<ChannelAccess *const>(frame->getArrivalModule())->getMobilityModule());
 
-	if ( !pSenderMob )
-		return;
+	double txHeight;
+	double rxHeight;
+	if ( !pSenderMob ) {
+		RsuMobility *txRsuMob = dynamic_cast<RsuMobility*>(dynamic_cast<ChannelAccess *const>(frame->getSenderModule())->getMobilityModule());
+		if ( !txRsuMob )
+			opp_error( "Invalid node for transmission." );
+		txHeight = txRsuMob->getHeight();
+	} else {
+		txHeight = UraeData::GetSingleton()->GetVehicleTypeDimensions( pManager->commandGetVehicleType( pSenderMob->getExternalId() ) ).z;
+	}
 
-	double txHeight = UraeData::GetSingleton()->GetVehicleClassDimensions( pSenderMob->commandGetVehicleClass() ).z;
+	if ( !pReceiverMob ) {
+		RsuMobility *rxRsuMob = dynamic_cast<RsuMobility*>(dynamic_cast<ChannelAccess *const>(frame->getArrivalModule())->getMobilityModule());
+		if ( !rxRsuMob )
+			opp_error( "Invalid node for reception." );
+		rxHeight = rxRsuMob->getHeight();
+	} else {
+		rxHeight = UraeData::GetSingleton()->GetVehicleTypeDimensions( pManager->commandGetVehicleType( pReceiverMob->getExternalId() ) ).z;
+	}
 
 	bool bFound = false;
 
@@ -122,7 +138,7 @@ void CarShadowModel::filterSignal( AirFrame *frame, const Coord& sendersPos, con
 		heading2 = Vector2D( heading1.y, -heading1.x );
 		LineSegment d1, d2;
 
-		Vector3D currDims = UraeData::GetSingleton()->GetVehicleClassDimensions( pMob->commandGetVehicleClass() );
+		Vector3D currDims = UraeData::GetSingleton()->GetVehicleTypeDimensions( pManager->commandGetVehicleType( pMob->getExternalId() ) );
 		d1 = LineSegment( p+heading1*currDims.y/2+heading2*currDims.x/2, p-heading1*currDims.y/2-heading2*currDims.x/2 );
 		d2 = LineSegment( p+heading1*currDims.y/2-heading2*currDims.x/2, p-heading1*currDims.y/2+heading2*currDims.x/2 );
 

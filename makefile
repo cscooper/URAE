@@ -48,9 +48,9 @@ OMNETPP_SRC_DIR=$(SRC_DIR)/OMNeT++
 OMNETPP_OBJ_DIR=$(OBJ_DIR)/OMNeT++
 VEINS_DIRS=base/utils modules modules/obstacle modules/utility modules/mobility/traci base/connectionManager base/modules modules/mac/ieee80211p modules/mobility modules/messages modules/analogueModel base/phyLayer modules/phy base/messages
 
-LIBRARY=$(LIB)
+LIBRARY=$(LIB_DIR)/$(LIBNAME)
 
-.PHONY: check_veins create_dirs
+.PHONY: check_veins create_dirs check_install_directory
 
 all : create_dirs Library Raytracer OMNETPP
 
@@ -77,17 +77,37 @@ $(RT_OBJ_DIR)/%.o : $(RT_SRC_DIR)/%.cpp
 	$(CC) $(FLAGS) -c $< -o $@ $(INCLUDE)
 
 OMNETPP : check_veins $(LIB)
-	cd $(OMNETPP_SRC_DIR); opp_makemake -f -O ../../$(OMNETPP_OBJ_DIR) $(patsubst %,-I ../../$(VEINS_ROOT)/src/%,$(VEINS_DIRS)) -I ../../include -s -o $(OMNETPP_SO); make MODE=$(OMNETPP_MODE)
+	cd $(OMNETPP_SRC_DIR); opp_makemake -f -O ../../$(OMNETPP_OBJ_DIR) $(patsubst %,-I ../../$(VEINS_ROOT)/src/%,$(VEINS_DIRS)) -I ../../include -L ../../lib $(RT_LIBS) -s -o $(OMNETPP_SO); make MODE=$(OMNETPP_MODE)
 	cp $(OMNETPP_OBJ_DIR)$(OMNETPP_OUTPUT_DIR)/lib$(OMNETPP_SO).so $(LIB_DIR)
 
 
-check_veins:
+check_veins :
 	@if [ -z "$(VEINS_ROOT)" ]; then \
 		echo "Error: Please specify a root directory for Veins if you're building for OMNeT++"; exit 2; \
 	else true; fi
+
+install_OMNETPP : create_dirs check_install_directory OMNETPP
+	mkdir -p $(OMNETPP_INSTALL_DIR)/URAE
+	mkdir -p $(OMNETPP_INSTALL_DIR)/URAE/include
+	mkdir -p $(OMNETPP_INSTALL_DIR)/URAE/lib
+	mkdir -p $(OMNETPP_INSTALL_DIR)/URAE/ned
+	cp $(OMNETPP_SRC_DIR)/*.ned $(OMNETPP_INSTALL_DIR)/URAE/ned/
+	cp $(LIB_DIR)/*.so $(OMNETPP_INSTALL_DIR)/URAE/lib/
+	cp include/*.h $(OMNETPP_INSTALL_DIR)/URAE/include/
+	cp $(OMNETPP_SRC_DIR)/*.h $(OMNETPP_INSTALL_DIR)/URAE/include/
+
+check_install_directory :
+	@if [ -z "$(OMNETPP_INSTALL_DIR)" ]; then \
+		echo "Error: Please specify a simulation workspace directory for installation"; exit 2; \
+	else true; fi
+
 
 clean:
 	cd $(OMNETPP_SRC_DIR); make clean; rm -f Makefile lib*.so
 	rm -rf $(BIN_DIR)/*
 	rm -rf $(OBJ_DIR)/*
 	rm -rf $(LIB_DIR)/*
+	rm -rf $(OMNETPP_INSTALL_DIR)/URAE/lib/*
+	rm -rf $(OMNETPP_INSTALL_DIR)/URAE/include/*
+	rm -rf $(OMNETPP_INSTALL_DIR)/URAE/ned/*
+	rm -rf $(OMNETPP_INSTALL_DIR)/URAE/

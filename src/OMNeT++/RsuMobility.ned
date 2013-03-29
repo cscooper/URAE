@@ -14,14 +14,17 @@
 // 
 
 package urae;
-import org.mixim.modules.phy.PhyLayer;
+
+import org.mixim.modules.mobility.ConstSpeedMobility;
 
 //
 // TODO auto-generated module
 //
-simple UraePhyLayer extends PhyLayer
+simple RsuMobility extends ConstSpeedMobility
 {
     parameters:
-        @class("UraePhyLayer");
-
+        @class("RsuMobility");
+        @display("i=block/cogwheel");
+        string roadId;
+        double height @unit("m") = default(7m);
 }

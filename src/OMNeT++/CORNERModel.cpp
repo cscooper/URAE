@@ -15,7 +15,8 @@
 
 #include <TraCIMobility.h>
 
-#include "TraCIScenarioManager.h"
+#include "UraeScenarioManager.h"
+#include "RsuMobility.h"
 #include "CORNERModel.h"
 
 #include "BaseWorldUtility.h"
@@ -42,9 +43,9 @@ CORNERMapping::CORNERMapping( Coord tPos, Coord rPos, double k, Urae::UraeData::
 
 double CORNERMapping::getValue( const Argument& pos ) const {
 
-	TraCIScenarioManager *pManager = TraCIScenarioManagerAccess().get();
-	TraCIScenarioManager::TraCICoord posT = pManager->omnet2traci( txPos );
-	TraCIScenarioManager::TraCICoord posR = pManager->omnet2traci( rxPos );
+	UraeScenarioManager *pManager = UraeScenarioManagerAccess().get();
+	Coord posT = pManager->ConvertCoords( txPos );
+	Coord posR = pManager->ConvertCoords( rxPos );
 
     Vector2D vTx = Vector2D(posT.x, posT.y);
     Vector2D vRx = Vector2D(posR.x, posR.y);
@@ -75,18 +76,29 @@ void CORNERModel::filterSignal( AirFrame *frame, const Coord& sendersPos, const 
 	Signal& signal = frame->getSignal();
 	double kFactor = 0;
 
-	TraCIScenarioManager *pManager = TraCIScenarioManagerAccess().get();
+	UraeScenarioManager *pManager = UraeScenarioManagerAccess().get();
 
+	bool txHasMapping = false, rxHasMapping = false;
 	TraCIMobility *pMobTx = dynamic_cast<TraCIMobility*>(dynamic_cast<ChannelAccess *const>(frame->getSenderModule())->getMobilityModule());
 	TraCIMobility *pMobRx = dynamic_cast<TraCIMobility*>(dynamic_cast<ChannelAccess *const>(frame->getArrivalModule())->getMobilityModule());
-
-	int txIndex, rxIndex;
-	bool txHasMapping = UraeData::GetSingleton()->LinkHasMapping( pMobTx->getRoadId(), &txIndex );
-	bool rxHasMapping = UraeData::GetSingleton()->LinkHasMapping( pMobRx->getRoadId(), &rxIndex );
+	RsuMobility *pRsuTx = dynamic_cast<RsuMobility*>(dynamic_cast<ChannelAccess *const>(frame->getSenderModule())->getMobilityModule());
+	RsuMobility *pRsuRx = dynamic_cast<RsuMobility*>(dynamic_cast<ChannelAccess *const>(frame->getArrivalModule())->getMobilityModule());
 	UraeData::Classification c;
+	int txIndex, rxIndex;
 
-	TraCIScenarioManager::TraCICoord posR = pManager->omnet2traci( receiverPos );
-	TraCIScenarioManager::TraCICoord posT = pManager->omnet2traci( sendersPos );
+	if ( pMobTx )
+		txHasMapping = UraeData::GetSingleton()->LinkHasMapping( pMobTx->getRoadId(), &txIndex );
+	else if ( pRsuTx )
+		txHasMapping = UraeData::GetSingleton()->LinkHasMapping( pRsuTx->getRoadId(), &txIndex );
+
+	if ( pMobRx )
+		rxHasMapping = UraeData::GetSingleton()->LinkHasMapping( pMobTx->getRoadId(), &txIndex );
+	else if ( pRsuRx )
+		rxHasMapping = UraeData::GetSingleton()->LinkHasMapping( pRsuTx->getRoadId(), &txIndex );
+
+
+	Coord posR = pManager->ConvertCoords( receiverPos );
+	Coord posT = pManager->ConvertCoords( sendersPos );
 	Vector2D vTx = Vector2D(posT.x, posT.y);
 	Vector2D vRx = Vector2D(posR.x, posR.y);
 

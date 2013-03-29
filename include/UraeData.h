@@ -288,10 +288,10 @@ namespace Urae {
 		void ComputeBuckets();
 
 		/*
-		 * Method: VectorMath::Vector3D GetVehicleClassDimensions( std::string );
+		 * Method: VectorMath::Vector3D GetVehicleTypeDimensions( std::string );
 		 * Description: Get the width (x), length (y), and height (z) of vehicles of the given class.
 		 */
-		VectorMath::Vector3D GetVehicleClassDimensions( std::string );
+		VectorMath::Vector3D GetVehicleTypeDimensions( std::string );
 
 	protected:
 
