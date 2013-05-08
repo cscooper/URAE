@@ -75,7 +75,7 @@ void Raytracer::TraceRay( Raytracer::RayPathComponent ray ) {
 
 	newRay.mReflectionCoefficient = ray.mReflectionCoefficient * ( sqrt(permitivity - cos(incidenceAngle)*cos(incidenceAngle)) - permitivity*sin(incidenceAngle) ) / ( sqrt(permitivity - cos(incidenceAngle)*cos(incidenceAngle)) + permitivity*sin(incidenceAngle) );
 	newRay.mDistanceSum = ray.mDistanceSum;
-	d = ray.mReflectionCoefficient * pUraeData->GetFreeSpaceRange() - newRay.mDistanceSum;
+	d = ray.mReflectionCoefficient * mRayLength - newRay.mDistanceSum;
 	if ( d <= 0 )
 		return;
 	newRay.mLineSegment = LineSegment( intersectPoint, intersectPoint + ray.mLineSegment.GetVector().Reflect( impactedEdge ).Unitise() * d );
@@ -214,17 +214,7 @@ Raytracer::Raytracer( Vector2D tx, unsigned int N, unsigned int nWorkers ) {
 
 	mExecuted = false;
 
-	pUraeData->CollectBucketsInRange( pUraeData->GetFreeSpaceRange(), tx, &mBucket );
-
-	for ( unsigned int r = 0; r < mRayCount; r++ ) {
-		Real alpha = mStartAngle + 2*M_PI*r/mRayCount;
-		RayPathComponent newComponent;
-		newComponent.mDistanceSum = 0;
-		newComponent.mLineSegment = LineSegment( mPositionTX, mPositionTX+Vector2D(cos(alpha),sin(alpha))*pUraeData->GetFreeSpaceRange() );
-		newComponent.mReflectionCoefficient = 1;
-		newComponent.mReflectionCount = 0;
-		mRayQueue.push( newComponent );
-	}
+	mRayLength = pUraeData->GetFreeSpaceRange();
 
 	mNumberOfWorkers = nWorkers;
 	mRayQueueMutex = PTHREAD_MUTEX_INITIALIZER;
@@ -245,7 +235,7 @@ Raytracer::~Raytracer() {
  * Method: RayPathComponentSet *GetRaySet();
  * Description: Get a pointer to the trace
  */
-Raytracer::RayPathComponentSet *Raytracer::GetRaySet() {
+const Raytracer::RayPathComponentSet *Raytracer::GetRaySet() const {
 
 	return &mRaySeq;
 
@@ -289,6 +279,19 @@ void Raytracer::Execute() {
 	if ( mExecuted )
 		THROW_EXCEPTION( "Trace has already been executed." );
 
+	UraeData::GetSingleton()->CollectBucketsInRange( 2*mRayLength, mPositionTX, &mBucket );
+
+	for ( unsigned int r = 0; r < mRayCount; r++ ) {
+		Real alpha = mStartAngle + 2*M_PI*r/mRayCount;
+		RayPathComponent newComponent;
+		newComponent.mDistanceSum = 0;
+		newComponent.mLineSegment = LineSegment( mPositionTX, mPositionTX+Vector2D(cos(alpha),sin(alpha))*mRayLength );
+		newComponent.mReflectionCoefficient = 1;
+		newComponent.mReflectionCount = 0;
+		mRayQueue.push( newComponent );
+	}
+
+
 	unsigned int i;
 	for ( i = 0; i < mNumberOfWorkers; i++ ) {
 		if ( pthread_create( &mWorkerThreads[i], NULL, &Raytracer::WorkerThread, this ) ) {
@@ -309,10 +312,10 @@ void Raytracer::Execute() {
 
 
 /*
- * Method: VectorMath::Real ComputeK( VectorMath::Vector2D receiverPosition, VectorMath::Real gain );
+ * Method: TraceReport ComputeK( VectorMath::Vector2D receiverPosition, VectorMath::Real gain );
  * Description: This computes the K factor for the receiver given its position and speed.
  */
-Real Raytracer::ComputeK( VectorMath::Vector2D rx, VectorMath::Real gain ) {
+Raytracer::TraceReport Raytracer::ComputeK( VectorMath::Vector2D rx, VectorMath::Real gain ) {
 
 	UraeData *pUraeData = UraeData::GetSingleton();
 	RayPathComponentSet::iterator componentIt;
@@ -338,27 +341,62 @@ Real Raytracer::ComputeK( VectorMath::Vector2D rx, VectorMath::Real gain ) {
 	}
 
 	vector< InterceptedRay >::iterator interceptIt;
+	TraceReport t;
+	t.mSpecularPower = t.mDiffusePower = 0;
+	t.mFactorK = -1;
+	t.mSpecularRayCount = t.mDiffuseRayCount = 0;
+
+	t.mTransmitterPosition = mPositionTX;
+	t.mReceiverPosition = rx;
 
 	if ( interceptedRays.size() == 0 )
-		return 0;
+		return t;	// if we got no intercepted rays
 
-	double diffPower = 0, maxPower = 0;
+	t.mFactorK = 0;
+	t.mDiffuseRayCount = interceptedRays.size();
+	if ( minRefl > 0 )
+		return t;	// got no LOS rays, so assume rayleigh
 
+	t.mDiffuseRayCount = 0;
 	for ( AllInVector( interceptIt, interceptedRays ) ) {
 
 		double phi = ( 2 * ( interceptIt->mDistance + interceptIt->m_pComponent->mDistanceSum ) / pUraeData->GetWavelength() + interceptIt->m_pComponent->mReflectionCount ) * 2 * M_PI;
 		double p = interceptIt->m_pComponent->mReflectionCoefficient * interceptIt->m_pComponent->mReflectionCoefficient * ( 0.5 + sin( phi ) / M_PI );
-		if ( interceptIt->m_pComponent->mReflectionCount == minRefl )
-			maxPower += p;
-		else
-			diffPower += p;
+		if ( interceptIt->m_pComponent->mReflectionCount == minRefl ) {
+			t.mSpecularPower += p;
+			t.mSpecularRayCount++;
+		} else {
+			t.mDiffusePower += p;
+			t.mDiffuseRayCount++;
+		}
+
+		t.mRayPowers.push_back( p );
 
 	}
 
-	if ( diffPower == 0 )
-		return DBL_MAX;	// best stand-in for infinity I can think of.
+	t.mRayPowerMean = ComputeMean( t.mRayPowers );
+	t.mRayPowerVariance = ComputeVariance( t.mRayPowers );
+	t.mRayPowerMedian = ComputeMedian( t.mRayPowers );
 
-	return maxPower / diffPower;
+// 	Real m = GetMax( t.mRayPowers ) - 2*sqrt(t.mRayPowerVariance);
+// 
+// 	std::vector<Real>::iterator powerIt;
+// 	for ( AllInVector( powerIt, t.mRayPowers ) ) {
+// 		if ( (*powerIt) < m ) {
+// 			t.mDiffusePower += (*powerIt);
+// 			t.mDiffuseRayCount++;
+// 		} else {
+// 			t.mSpecularPower += (*powerIt);
+// 			t.mSpecularRayCount++;
+// 		}
+// 	}
+
+	if ( t.mDiffusePower == 0 )
+		t.mFactorK = DBL_MAX;	// best stand-in for infinity I can think of.
+	else
+		t.mFactorK = t.mSpecularPower / t.mDiffusePower;
+
+	return t;
 
 }
 

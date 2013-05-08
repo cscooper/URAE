@@ -24,6 +24,7 @@
 
 #include "UraeData.h"
 #include "RsuMobility.h"
+#include "CarMobility.h"
 
 
 DimensionSet CarShadowMapping::dimensions(Dimension::time,Dimension::frequency);
@@ -63,8 +64,9 @@ double CarShadowMapping::getValue( const Argument& pos ) const {
 }
 
 
-CarShadowModel::CarShadowModel( simtime_t_cref i, double mLambda ) : interval( i ), mWavelength(mLambda) {
-	// TODO Auto-generated constructor stub
+CarShadowModel::CarShadowModel( simtime_t i, double mLambda ) {
+	interval = i;
+	mWavelength = mLambda;
 }
 
 CarShadowModel::~CarShadowModel() {
@@ -86,18 +88,24 @@ void CarShadowModel::filterSignal( AirFrame *frame, const Coord& sendersPos, con
 	Rect lineRect(l);
 
 
-	TraCIMobility *pSenderMob = dynamic_cast<TraCIMobility*>(dynamic_cast<ChannelAccess *const>(frame->getSenderModule())->getMobilityModule());
-	TraCIMobility *pReceiverMob = dynamic_cast<TraCIMobility*>(dynamic_cast<ChannelAccess *const>(frame->getArrivalModule())->getMobilityModule());
+	CarMobility *pSenderMob = dynamic_cast<CarMobility*>(dynamic_cast<ChannelAccess *const>(frame->getSenderModule())->getMobilityModule());
+	CarMobility *pReceiverMob = dynamic_cast<CarMobility*>(dynamic_cast<ChannelAccess *const>(frame->getArrivalModule())->getMobilityModule());
 
 	double txHeight;
 	double rxHeight;
+	int xStartTmp, xEndTmp;
+	int yStartTmp, yEndTmp;
 	if ( !pSenderMob ) {
 		RsuMobility *txRsuMob = dynamic_cast<RsuMobility*>(dynamic_cast<ChannelAccess *const>(frame->getSenderModule())->getMobilityModule());
 		if ( !txRsuMob )
 			opp_error( "Invalid node for transmission." );
 		txHeight = txRsuMob->getHeight();
+		xStartTmp = txRsuMob->getCurrentPosition().x / pManager->getGridSize();
+		yStartTmp = txRsuMob->getCurrentPosition().y / pManager->getGridSize();
 	} else {
 		txHeight = UraeData::GetSingleton()->GetVehicleTypeDimensions( pManager->commandGetVehicleType( pSenderMob->getExternalId() ) ).z;
+		xStartTmp = pSenderMob->getGridCell().x;
+		yStartTmp = pSenderMob->getGridCell().y;
 	}
 
 	if ( !pReceiverMob ) {
@@ -105,141 +113,157 @@ void CarShadowModel::filterSignal( AirFrame *frame, const Coord& sendersPos, con
 		if ( !rxRsuMob )
 			opp_error( "Invalid node for reception." );
 		rxHeight = rxRsuMob->getHeight();
+		xEndTmp = rxRsuMob->getCurrentPosition().x / pManager->getGridSize();
+		yEndTmp = rxRsuMob->getCurrentPosition().y / pManager->getGridSize();
 	} else {
 		rxHeight = UraeData::GetSingleton()->GetVehicleTypeDimensions( pManager->commandGetVehicleType( pReceiverMob->getExternalId() ) ).z;
+		xEndTmp = pReceiverMob->getGridCell().x;
+		yEndTmp = pReceiverMob->getGridCell().y;
 	}
 
 	bool bFound = false;
 
 	// find the vehicles on the line between Tx and Rx
-	std::map<std::string, cModule*> *pCars = pManager->getManagedHostsPtr();
-	std::map<std::string, cModule*>::iterator it;
-	CarEntry vTx[3], vRx[3];
-	double Dtr = l.GetDistance();
-	vTx[0].mDistance = vTx[1].mDistance = vTx[2].mDistance = vRx[0].mDistance = vRx[1].mDistance = vRx[2].mDistance = Dtr;
-	vTx[0].mHeight = vRx[0].mHeight = 0;
-	vTx[1].mHeight = vRx[1].mHeight = 0;
-	vTx[2].mHeight = vRx[2].mHeight = 0;
+	Real gammaT[3], gammaR[3], hts[3], hsr[3], Dts[3], Dsr[3], Dtr;
+	gammaT[0] = gammaT[1] = gammaT[2] = 0;
+	gammaR[0] = gammaR[1] = gammaR[2] = 0;
 
-	for ( AllInVector( it, (*pCars) ) ) {
+	Dtr = l.GetDistance();
 
-		TraCIMobility *pMob = dynamic_cast<TraCIMobility*>(it->second->getSubmodule("mobility",-1));
+	int xStart = MIN( xStartTmp, xEndTmp );
+	int yStart = MIN( yStartTmp, yEndTmp );
+	int xEnd   = MAX( xStartTmp, xEndTmp );
+	int yEnd   = MAX( yStartTmp, yEndTmp );
 
-		Coord vPos = pMob->getCurrentPosition();
+	for ( int x = xStart; x <= xEnd; x++ ) {
 
-		if ( pMob == pSenderMob || pMob == pReceiverMob )
-			continue;
+		for ( int y = yStart; y <= yEnd; y++ ) {
 
-		double angle = pMob->getAngleRad();
+			const UraeScenarioManager::GridCell &pCell = pManager->getGridCell( x, y );
+			UraeScenarioManager::GridCell::const_iterator it;
 
-		Vector2D v1, v2, p, heading1, heading2;
-		p = Vector2D( vPos.x, vPos.y );
-		heading1 = Vector2D( cos(angle), sin(angle) );
-		heading2 = Vector2D( heading1.y, -heading1.x );
-		LineSegment d1, d2;
+			for ( AllInVector( it, pCell ) ) {
 
-		Vector3D currDims = UraeData::GetSingleton()->GetVehicleTypeDimensions( pManager->commandGetVehicleType( pMob->getExternalId() ) );
-		d1 = LineSegment( p+heading1*currDims.y/2+heading2*currDims.x/2, p-heading1*currDims.y/2-heading2*currDims.x/2 );
-		d2 = LineSegment( p+heading1*currDims.y/2-heading2*currDims.x/2, p-heading1*currDims.y/2+heading2*currDims.x/2 );
+				CarMobility *pMob = (*it);
 
-		bool d1Int = d1.IntersectLine( l, &v1 ), d2Int = d2.IntersectLine( l, &v2 );
+				Coord vPos = pMob->getCurrentPosition();
 
-		if ( d1Int || d2Int ) {
+				if ( pMob == pSenderMob || pMob == pReceiverMob )
+					continue;
 
-			double h1 = currDims.z - txHeight, h2, h3, dTx, dRx;
-			if ( d1Int ) {
-				h2 = (d1.mStart-v1).Magnitude();
-				h3 = (  d1.mEnd-v1).Magnitude();
-				dTx = (l.mStart-v1).Magnitude();
-				dRx = (  l.mEnd-v1).Magnitude();
-			} else if ( d2Int ) {
-				h2 = (d2.mStart-v2).Magnitude();
-				h3 = (  d2.mEnd-v2).Magnitude();
-				dTx = (l.mStart-v2).Magnitude();
-				dRx = (  l.mEnd-v2).Magnitude();
+				double angle = pMob->getAngleRad();
+
+				Vector2D v1, v2, p, heading1, heading2;
+				p = Vector2D( vPos.x, vPos.y );
+				heading1 = Vector2D( cos(angle), sin(angle) );
+				heading2 = Vector2D( heading1.y, -heading1.x );
+				LineSegment d1, d2;
+
+				Vector3D currDims = UraeData::GetSingleton()->GetVehicleTypeDimensions( pManager->commandGetVehicleType( pMob->getExternalId() ) );
+				d1 = LineSegment( p+heading1*currDims.y/2+heading2*currDims.x/2, p-heading1*currDims.y/2-heading2*currDims.x/2 );
+				d2 = LineSegment( p+heading1*currDims.y/2-heading2*currDims.x/2, p-heading1*currDims.y/2+heading2*currDims.x/2 );
+
+				bool d1Int = d1.IntersectLine( l, &v1 ), d2Int = d2.IntersectLine( l, &v2 );
+
+				if ( d1Int || d2Int ) {
+
+					Real h[3], dTx, dRx, tmp;
+					h[0] = currDims.z;
+					if ( d1Int && !d2Int ) {
+						h[1] = (d1.mStart-v1).Magnitude();
+						h[2] = (  d1.mEnd-v1).Magnitude();
+						dTx = (l.mStart-v1).Magnitude();
+						dRx = (  l.mEnd-v1).Magnitude();
+					} else if ( !d1Int && d2Int ) {
+						h[1] = (d2.mStart-v2).Magnitude();
+						h[2] = (  d2.mEnd-v2).Magnitude();
+						dTx = (l.mStart-v2).Magnitude();
+						dRx = (  l.mEnd-v2).Magnitude();
+					} else {
+						h[1] = MAX( (d2.mStart-v2).Magnitude(), (d1.mStart-v1).Magnitude() );
+						h[2] = MAX( (  d2.mEnd-v2).Magnitude(), (  d1.mEnd-v1).Magnitude() );
+						dTx = (l.mStart-v2).Magnitude();
+						dRx = (  l.mEnd-v2).Magnitude();
+					}
+
+					for ( int i = 0; i < 3; i++ ) {
+
+						tmp = ( h[i] - ( i == 0 ? txHeight : 0 ) ) / dTx;
+						if ( gammaT[i] <= tmp ) {
+
+							gammaT[i] = tmp;
+							hts[i] = h[i];
+							Dts[i] = dTx;
+
+						}
+
+						tmp = ( h[i] - ( i == 0 ? rxHeight : 0 ) ) / dRx;
+						if ( gammaR[i] <= tmp ) {
+
+							gammaR[i] = tmp;
+							hsr[i] = h[i];
+							Dsr[i] = dRx;
+
+						}
+
+					}
+
+					bFound = true;
+
+				} else {
+
+					continue;
+
+				}
+
 			}
-
-
-			if ( h1/dTx > vTx[0].mHeight/vTx[0].mDistance ) {
-				vTx[0].mHeight = h1;
-				vTx[0].mDistance = dTx;
-			}
-			if ( h2/dTx > vTx[1].mHeight/vTx[1].mDistance ) {
-				vTx[1].mHeight = h2;
-				vTx[1].mDistance = dTx;
-			}
-			if ( h3/dTx > vTx[2].mHeight/vTx[2].mDistance ) {
-				vTx[2].mHeight = h3;
-				vTx[2].mDistance = dTx;
-			}
-
-			if ( h1/dRx > vRx[0].mHeight/vRx[0].mDistance ) {
-				vRx[0].mHeight = h1;
-				vRx[0].mDistance = dTx;
-			}
-			if ( h2/dRx > vRx[1].mHeight/vRx[1].mDistance ) {
-				vRx[1].mHeight = h2;
-				vRx[1].mDistance = dTx;
-			}
-			if ( h3/dRx > vRx[2].mHeight/vRx[2].mDistance ) {
-				vRx[2].mHeight = h3;
-				vRx[2].mDistance = dTx;
-			}
-
-			bFound = true;
-
-		} else {
-
-			continue;
 
 		}
 
 	}
 
-
 	if ( !bFound )
 		return;
 
-	bool cond1, cond2;
-	double aTx, aRx, gamma, d1, d2, h, v;
+	Real d1, d2, h, v;
 
 	for ( int i = 0; i < 3; i++ ) {
 
-		aTx = atan(vTx[i].mHeight/vTx[i].mDistance);
-		aRx = atan(vRx[i].mHeight/vRx[i].mDistance);
-		gamma = tan(aRx)/tan(aTx);
-		cond1 = (Dtr-vTx[i].mDistance)*tan(aRx) > vTx[i].mHeight;
-		cond2 = (Dtr-vRx[i].mDistance)*tan(aTx) > vRx[i].mHeight;
+		if ( gammaT[i] <= 0 && gammaR[i] > 0 ) {
 
-		if ( cond1 && cond2 ) {
+			h = hsr[i];
+			d1 = Dts[i];
+			d2 = Dsr[i];
 
-			d2 = Dtr / ( 1 + gamma );
-			d1 = gamma * d2;
-			h = d1 * tan( aTx );
+		} else if ( gammaT[i] > 0 && gammaR[i] <= 0 ) {
 
-		} else if ( !cond1 && cond2 ) {
+			h = hts[i];
+			d1 = Dsr[i];
+			d2 = Dts[i];
 
-			d1 = vTx[i].mDistance;
-			d2 = Dtr - vRx[i].mDistance;
-			h = vTx[i].mHeight;
+		} else if ( gammaT[i] == 0 && gammaT[i] == gammaR[i] ) {
 
-		} else if ( cond1 && !cond2 ) {
-
-			d1 = Dtr - vTx[i].mDistance;
-			d2 = vRx[i].mDistance;
-			h = vRx[i].mHeight;
+			h = 0;
 
 		} else {
-			continue;
+
+			d1 = ( rxHeight - txHeight + gammaR[i] * Dtr ) / ( gammaT[i] + gammaR[i] );
+			d2 = Dtr - d1;
+			h = gammaT[i] * d1 + txHeight;
+
 		}
 
-		v = h * sqrt( 2 * (d1 + d2) / ( mWavelength * d1 * d2 ) );
+		if ( h != 0 ) {
+			v = ( atan2( h - ( i == 0 ? txHeight : 0 ), d1 ) + atan2( h - ( i == 0 ? rxHeight : 0 ), d2 ) ) * sqrt( 2 * (d1 + d2) / ( mWavelength * d1 * d2 ) );
+		} else {
+			v = 0;
+		}
 
 		signal.addAttenuation(
 				new CarShadowMapping(
 						v,
 						Argument(signal.getReceptionStart()),
-						Argument(0.1),
+						Argument(interval),
 						Argument(signal.getReceptionEnd())
 						)
 		);

@@ -340,6 +340,9 @@ namespace VectorMath {
 	Real ComputeVariance( std::vector<Real>& );
 	Real ComputeProduct( std::vector<Real>& );
 	Real ComputeCovariance( std::vector<Real>&, std::vector<Real>& );
+	Real ComputeMedian( std::vector<Real>& );
+	Real GetMax( std::vector<Real>& );
+	Real GetMin( std::vector<Real>& );
 
 };
 

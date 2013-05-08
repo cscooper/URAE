@@ -27,10 +27,11 @@
 class MIXIM_API CORNERModel: public AnalogueModel {
 
 protected:
-	simtime_t_cref interval;
+	static DimensionSet dimensions;
+	simtime_t interval;
 
 public:
-	CORNERModel( simtime_t_cref i );
+	CORNERModel( simtime_t i );
 	virtual ~CORNERModel();
 
 	virtual void filterSignal( AirFrame *frame, const Coord& sendersPos, const Coord& receiverPos );
@@ -44,19 +45,20 @@ protected:
 	static DimensionSet dimensions;
 	Coord txPos;
 	Coord rxPos;
-	double kFactor;
 	Urae::UraeData::Classification mClassification;
+	double kFactor;
 
 public:
 	CORNERMapping( Coord tPos,
 				   Coord rPos,
-				   double k,
 				   Urae::UraeData::Classification c,
+				   double k,
 				   const Argument& start,
 				   const Argument& interval,
 				   const Argument& end);
 
 	virtual double getValue( const Argument& pos ) const;
+	double GetK() const { return kFactor; }
 
 	ConstMapping* constClone() const {
 		return new CORNERMapping( *this );

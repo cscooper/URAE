@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import sys
 import os
 import subprocess
 from optparse import *
@@ -24,7 +25,10 @@ def main( options ):
 	# generate the configuration file
 	print "Generating configuration..."
 	os.chdir( tempDir )
-	RunCommand( "./Raytracer -g -b " + streetName + " -r " + str(options.raycount) + " -i " + str(options.increment) + " -c " + str(options.cores) + " -G " + str(options.rxGain) + " -N " + str(options.areaCount) + " -F config" )
+	rtCmd = "./Raytracer -g -b " + streetName + " -r " + str(options.raycount) + " -i " + str(options.increment) + " -c " + str(options.cores) + " -G " + str(options.rxGain) + " -N " + str(options.areaCount) + " -F config"
+	if options.rsuDefFile:
+		rtCmd += " -R ../" + options.rsuDefFile
+	RunCommand( rtCmd )
 	os.chdir( ".." )
 
 	# create the raytracer mediator script
@@ -83,6 +87,7 @@ if __name__ == "__main__":
 	procGroup.add_option("-G", "--rxGain", dest="rxGain", type='float', default=1, help="The gain of the receiver antenna")
 	procGroup.add_option("-N", "--areaCount", dest="areaCount", type='int', default=4, help="The number of areas to divide the map into")
 	procGroup.add_option("-I", "--ignoreNodes", dest="ignoreNodes", type='string', help="Specify nodes on the cluster to ignore (comma delimited).")
+	procGroup.add_option("-R", "--rsuDefFile", dest="rsuDefFile", type='string', help="Specify RSU definitions file.")
 	optParser.add_option_group(procGroup)
 
 	(options, args) = optParser.parse_args()

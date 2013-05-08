@@ -18,6 +18,7 @@
  *  Contact Details: Cooper - andor734@gmail.com
  */
 
+#include <algorithm>
 #include <iostream>
 #include <cfloat>
 
@@ -545,6 +546,36 @@ Real VectorMath::ComputeCovariance( std::vector<Real>& X, std::vector<Real>& Y )
 
 }
 
+
+
+Real VectorMath::ComputeMedian( std::vector<Real>& dataSet ) {
+
+	// sort the dataset
+	std::sort( dataSet.begin(), dataSet.end() );
+	if ( ( dataSet.size() % 2 ) == 1 )
+		return dataSet[ (dataSet.size() + 1)/2 ];
+	else
+		return ( dataSet[ dataSet.size()/2 ] + dataSet[ dataSet.size()/2 + 1 ] ) / 2;
+
+}
+
+
+Real VectorMath::GetMax( std::vector<Real>& dataSet ) {
+
+	// sort the dataset
+	std::sort( dataSet.begin(), dataSet.end() );
+	return dataSet.back();
+
+}
+
+
+Real VectorMath::GetMin( std::vector<Real>& dataSet ) {
+
+	// sort the dataset
+	std::sort( dataSet.begin(), dataSet.end() );
+	return dataSet.front();
+
+}
 
 
 

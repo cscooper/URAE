@@ -24,19 +24,11 @@
 class MIXIM_API CarShadowModel: public AnalogueModel {
 
 protected:
-	simtime_t_cref interval;
-
+	simtime_t interval;
 	double mWavelength;
 
-	struct CarEntry {
-
-		double mHeight;
-		double mDistance;
-
-	};
-
 public:
-	CarShadowModel( simtime_t_cref i, double lambda );
+	CarShadowModel( simtime_t i, double lambda );
 	virtual ~CarShadowModel();
 
 	virtual void filterSignal( AirFrame *frame, const Coord& sendersPos, const Coord& receiverPos );

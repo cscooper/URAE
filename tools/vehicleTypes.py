@@ -13,6 +13,8 @@
 # vClass 		An abstract vehicle class (see below)
 # emissionClass An abstract emission class (see below); default: "P_7_7"
 # width 		The vehicle's width [m] (only used for drawing)
+# height 		The vehicle's height [m]
+# weight 		The fraction of vehicles on the road that are of this type
 
 
 import pickle
@@ -26,6 +28,8 @@ routeFile = []
 def CreateVehicleDefinitionXML( vDef ):
 	vDefStr = "<vType"
 	for k in vDef.iterkeys():
+		if k == "height" or k == "weight":
+			continue	# height doesn't go into the xml file
 		vDefStr = vDefStr + " " + k + "=\"" + vDef[k] + "\""
 	vDefStr = vDefStr + "/>"
 	return vDefStr
@@ -43,10 +47,19 @@ def LoadVehicleDefinitions( fname ):
 		vehicleDef["length"] 		= line[4]
 		vehicleDef["color"] 		= line[5]
 		vehicleDef["width"] 		= line[6]
+		vehicleDef["height"] 		= line[7]
+		vehicleDef["weight"] 		= float(line[8])
 		vehicleDefinitions.append( vehicleDef )
 
 	f.close()
 	r = None
+
+	wSum = 0
+	for vDef in vehicleDefinitions:
+		wSum += vDef["weight"]
+	if wSum != 1:
+		for vDef in vehicleDefinitions:
+			vDef["weight"] /= wSum
 
 	print "Loaded " + str(len(vehicleDefinitions)) + " vehicle definitions."
 
@@ -59,8 +72,16 @@ def LoadRoutes( fname ):
 			for vDef in vehicleDefinitions:
 				routeFile.append( "    "+CreateVehicleDefinitionXML( vDef )+"\n" )
 		elif "<vehicle" in line:
-			n = int( random.random() * len(vehicleDefinitions) )
-			routeFile.append( line.replace(">"," type=\"" + vehicleDefinitions[n]["id"] + "\">") )
+			n = float( random.random() )
+			v = None
+			for vDef in sorted( vehicleDefinitions, key=lambda v: v["weight"] ):
+				if n < vDef["weight"]:
+					v = vDef
+					break
+				else:
+					n -= vDef["weight"]
+
+			routeFile.append( line.replace(">"," type=\"" + v["id"] + "\">") )
 		else:
 			routeFile.append(line)
 

@@ -16,6 +16,7 @@
 
 #include <fstream>
 #include <queue>
+#include <algorithm>
 #include "UraeScenarioManager.h"
 
 #include "Urae.h"
@@ -70,6 +71,15 @@ void UraeScenarioManager::initialize(int stage) {
 			opp_error(e.What().c_str());
 		}
 
+		// set up the grid space
+		mGridSize = par("gridSize").longValue();
+		VectorMath::Rect r = mUraeData->GetMapRect();
+		mGridWidth = ceil( r.size.x / mGridSize );
+		mGridHeight = ceil( r.size.y / mGridSize );
+		mGridLookup = new GridCell* [mGridWidth];
+		for ( int i = 0; i < mGridWidth; i++ )
+			mGridLookup[i] = new GridCell[mGridHeight];
+
 	}
 
 }
@@ -85,6 +95,31 @@ void UraeScenarioManager::finish() {
 	TraCIScenarioManagerLaunchd::finish();
 
 }
+
+
+int UraeScenarioManager::getGridSize() const {
+
+	return mGridSize;
+
+}
+
+
+
+void UraeScenarioManager::updateModuleGrid( CarMobility *pMod, Coord prev, Coord next ) {
+
+	if ( prev.x > 0 && prev.y > 0 )
+		mGridLookup[(int)prev.x][(int)prev.y].erase( std::remove( mGridLookup[(int)prev.x][(int)prev.y].begin(), mGridLookup[(int)prev.x][(int)prev.y].end(), pMod ), mGridLookup[(int)prev.x][(int)prev.y].end() );
+
+	if ( next.x > 0 && next.y > 0 )
+		mGridLookup[(int)next.x][(int)next.y].push_back( pMod );
+
+}
+
+
+const UraeScenarioManager::GridCell& UraeScenarioManager::getGridCell( int x, int y ) const {
+	return mGridLookup[x][y];
+}
+
 
 
 std::string UraeScenarioManager::commandGetVehicleType( std::string vehicleId ) {

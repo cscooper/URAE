@@ -54,6 +54,20 @@ namespace Urae {
 
 		typedef std::vector<RayPathComponent> RayPathComponentSet;
 
+		struct TraceReport {
+			VectorMath::Real mFactorK;
+			VectorMath::Real mSpecularPower;
+			VectorMath::Real mDiffusePower;
+			unsigned int mSpecularRayCount;
+			unsigned int mDiffuseRayCount;
+			VectorMath::Vector2D mTransmitterPosition;
+			VectorMath::Vector2D mReceiverPosition;
+			VectorMath::Real mRayPowerMean;
+			VectorMath::Real mRayPowerVariance;
+			VectorMath::Real mRayPowerMedian;
+			std::vector<VectorMath::Real> mRayPowers;
+		};
+		
 	protected:
 
 		// for internal use by the K-Factor estimator
@@ -67,6 +81,8 @@ namespace Urae {
 		unsigned int mRayCount;							// number of rays to be generated
 		VectorMath::Real mStartAngle;					// vector angle to start generating rays from
 		VectorMath::Real mCarPermitivity;				// LPF of car material
+
+		VectorMath::Real mRayLength;
 
 		bool mExecuted; 								// the trace has been executed
 
@@ -112,12 +128,14 @@ namespace Urae {
 		virtual ~Raytracer();
 
 		VectorMath::Vector2D GetTransmitterPosition() { return mPositionTX; }
-		
+
+		void SetRayLength( VectorMath::Real l ) { mRayLength = l; }
+
 		/*
 		 * Method: RayPathComponentSet *GetRaySet();
 		 * Description: Get a pointer to the trace
 		 */
-		RayPathComponentSet *GetRaySet();
+		const RayPathComponentSet *GetRaySet() const;
 
 		/*
 		 * Method: bool RunTrace();
@@ -132,10 +150,10 @@ namespace Urae {
 		void Execute();
 
 		/*
-		 * Method: VectorMath::Real ComputeK( VectorMath::Vector2D receiverPosition, VectorMath::Real gain );
+		 * Method: TraceReport ComputeK( VectorMath::Vector2D receiverPosition, VectorMath::Real gain );
 		 * Description: This computes the K factor for the receiver given its position, and gain.
 		 */
-		VectorMath::Real ComputeK( VectorMath::Vector2D, VectorMath::Real );
+		TraceReport ComputeK( VectorMath::Vector2D, VectorMath::Real );
 		
 	};
 

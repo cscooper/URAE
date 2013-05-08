@@ -585,39 +585,6 @@ void UraeData::LoadNetwork( const char* linksFile, const char* nodesFile, const 
 
 	}
 
-	// read the pre-computed K-factors
-	if ( riceDataFile ) {
-
-		stream.open( riceDataFile );
-		if ( stream.fail() ) {
-			THROW_EXCEPTION( "Cannot open Rice datafile: %s", riceDataFile );
-		}
-
-		stream >> dec >> numRice;
-		for ( int c = 0; c < numRice; c++ ) {
-
-			LinkPair p;
-			int nPoints = 0;
-			stream >> p.first >> p.second >> nPoints;
-			mRiceFactorData[p] = RiceFactorData();
-			for ( int n = 0; n < nPoints; n++ ) {
-
-				RiceFactorEntry e;
-				std::string strK;
-				stream >> e.mSource.x >> e.mSource.y >> e.mDestination.x >> e.mDestination.y >> strK;
-				if ( strK == "inf" )
-					e.mKfactor = DBL_MAX;
-				else
-					e.mKfactor = atof( strK.c_str() );
-				mRiceFactorData[p].push_back( e );
-
-			}
-
-		}
-
-		stream.close();
-
-	}
 
 	// read the car definitions
 	if ( carDefFile ) {
@@ -630,21 +597,59 @@ void UraeData::LoadNetwork( const char* linksFile, const char* nodesFile, const 
 		stream >> dec >> numCars;
 		for ( int c = 0; c < numCars; c++ ) {
 
-			std::string strName;
-			stream >> strName
-				   >> mCarDefinitions[strName].mAcceleration
+			std::string strName, strCol;
+			Real w;
+			stream >> strName;
+			stream >> mCarDefinitions[strName].mAcceleration
 				   >> mCarDefinitions[strName].mDeceleration
 				   >> mCarDefinitions[strName].mDriverImperfection
 				   >> mCarDefinitions[strName].mLength
+				   >> strCol
 				   >> mCarDefinitions[strName].mWidth
-				   >> mCarDefinitions[strName].mHeight;
+				   >> mCarDefinitions[strName].mHeight
+				   >> w;
 
 		}
 
 		stream.close();
 
 	}
-	
+
+
+    // read the pre-computed K-factors
+    if ( riceDataFile ) {
+
+        stream.open( riceDataFile );
+        if ( stream.fail() ) {
+            THROW_EXCEPTION( "Cannot open Rice datafile: %s", riceDataFile );
+        }
+
+        stream >> dec >> numRice;
+        for ( int c = 0; c < numRice; c++ ) {
+
+            LinkPair p;
+            int nPoints = 0;
+            stream >> p.first >> p.second >> nPoints;
+            mRiceFactorData[p] = RiceFactorData();
+            for ( int n = 0; n < nPoints; n++ ) {
+
+                RiceFactorEntry e;
+                std::string strK;
+                stream >> e.mSource.x >> e.mSource.y >> e.mDestination.x >> e.mDestination.y >> strK;
+                if ( strK == "inf" )
+                    e.mKfactor = DBL_MAX;
+                else
+                    e.mKfactor = atof( strK.c_str() );
+                mRiceFactorData[p].push_back( e );
+
+            }
+
+        }
+
+        stream.close();
+
+    }
+
 	mMapRect.location = topLeft;
 	mMapRect.size = bottomRight - topLeft;
 

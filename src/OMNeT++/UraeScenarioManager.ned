@@ -57,5 +57,6 @@ simple UraeScenarioManager
 		double lossPerReflection = default(0.75);
 		string componentFile = default("default.fading");
 		int randSeed = default(1234);
+		int gridSize @unit("m") = default(200m);
 
 }

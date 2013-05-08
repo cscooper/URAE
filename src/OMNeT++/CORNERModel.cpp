@@ -28,40 +28,26 @@
 
 
 
-
-
+DimensionSet CORNERModel::dimensions(Dimension::time,Dimension::frequency);
 DimensionSet CORNERMapping::dimensions(Dimension::time,Dimension::frequency);
 
 
 using namespace VectorMath;
 using namespace Urae;
 
-CORNERMapping::CORNERMapping( Coord tPos, Coord rPos, double k, Urae::UraeData::Classification c, const Argument& start, const Argument& interval, const Argument& end) :
-					   SimpleConstMapping( dimensions, start, end, interval ), txPos( tPos ), rxPos( rPos ), kFactor( k ), mClassification( c ) {
+CORNERMapping::CORNERMapping( Coord tPos, Coord rPos, Urae::UraeData::Classification c, double k, const Argument& start, const Argument& interval, const Argument& end) :
+					   SimpleConstMapping( dimensions, start, end, interval ), txPos( tPos ), rxPos( rPos ), mClassification( c ), kFactor(k) {
 }
 
 
 double CORNERMapping::getValue( const Argument& pos ) const {
-
-	UraeScenarioManager *pManager = UraeScenarioManagerAccess().get();
-	Coord posT = pManager->ConvertCoords( txPos );
-	Coord posR = pManager->ConvertCoords( rxPos );
-
-    Vector2D vTx = Vector2D(posT.x, posT.y);
-    Vector2D vRx = Vector2D(posR.x, posR.y);
-
-    // get classification...
     Classifier classifier(mClassification);
-    double PL = classifier.CalculatePathloss( vTx, vRx ) / UraeData::GetSingleton()->GetSystemLoss();
-    double fading = Fading::GetSingleton()->CalculateFading( mClassification.mClassification, kFactor );
-
-    return PL * fading;
-
+    return classifier.CalculatePathloss( Vector2D( txPos.x, txPos.y ), Vector2D( rxPos.x, rxPos.y ) ) / UraeData::GetSingleton()->GetSystemLoss();
 }
 
 
-CORNERModel::CORNERModel( simtime_t_cref i ) : interval( i ) {
-	// TODO Auto-generated constructor stub
+CORNERModel::CORNERModel( simtime_t i ) {
+	interval = i;
 }
 
 CORNERModel::~CORNERModel() {
@@ -92,9 +78,9 @@ void CORNERModel::filterSignal( AirFrame *frame, const Coord& sendersPos, const 
 		txHasMapping = UraeData::GetSingleton()->LinkHasMapping( pRsuTx->getRoadId(), &txIndex );
 
 	if ( pMobRx )
-		rxHasMapping = UraeData::GetSingleton()->LinkHasMapping( pMobTx->getRoadId(), &txIndex );
+		rxHasMapping = UraeData::GetSingleton()->LinkHasMapping( pMobRx->getRoadId(), &rxIndex );
 	else if ( pRsuRx )
-		rxHasMapping = UraeData::GetSingleton()->LinkHasMapping( pRsuTx->getRoadId(), &txIndex );
+		rxHasMapping = UraeData::GetSingleton()->LinkHasMapping( pRsuRx->getRoadId(), &rxIndex );
 
 
 	Coord posR = pManager->ConvertCoords( receiverPos );
@@ -128,15 +114,33 @@ void CORNERModel::filterSignal( AirFrame *frame, const Coord& sendersPos, const 
 
 	signal.addAttenuation(
 			new CORNERMapping(
-					sendersPos,
-					receiverPos,
-					kFactor,
+					posT,
+					posR,
 					c,
+					kFactor,
 					Argument(signal.getReceptionStart()),
-					Argument(0.1),
+					Argument(interval),
 					Argument(signal.getReceptionEnd())
 					)
 	);
+
+
+	if ( kFactor != DBL_MAX ) {
+
+		// we have fading at this point
+		Mapping *att = MappingUtils::createMapping( dimensions, Mapping::LINEAR );
+		Argument pos;
+
+		for ( simtime_t t = signal.getReceptionStart(); t <= signal.getReceptionEnd(); t += interval ) {
+
+			pos.setTime( t );
+			double f = Fading::GetSingleton()->CalculateFading( c.mClassification, kFactor );
+			att->appendValue( pos, f );
+
+		}
+		signal.addAttenuation( att );
+
+	}
 
 }
 

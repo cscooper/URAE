@@ -19,20 +19,23 @@
 #include <TraCIScenarioManagerLaunchd.h>
 
 #include "Urae.h"
+#include "CarMobility.h"
 
 
 class UraeScenarioManager: public TraCIScenarioManagerLaunchd {
 
-protected:
-	Urae::UraeData *mUraeData;
-	Urae::Fading *mFading;
-
 public:
+	typedef std::vector<CarMobility*> GridCell;
+
 	UraeScenarioManager();
 	virtual ~UraeScenarioManager();
 
 	virtual void initialize(int stage);
 	virtual void finish();
+
+	int getGridSize() const;
+	void updateModuleGrid( CarMobility*, Coord, Coord );
+	const GridCell& getGridCell( int x, int y ) const;
 
 	std::string commandGetVehicleType(std::string vehicleId);
 	bool commandCreateRoute(std::string routeId,std::list<std::string> edgeList);
@@ -41,6 +44,14 @@ public:
 	Coord ConvertCoords( Coord p, bool fromTraci = false );
 	double ConvertAngle( double a, bool fromTraci = false );
 
+protected:
+	Urae::UraeData *mUraeData;
+	Urae::Fading *mFading;
+
+	GridCell **mGridLookup;
+	int mGridWidth;
+	int mGridHeight;
+	int mGridSize;
 
 };
 

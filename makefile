@@ -31,7 +31,6 @@ else
 	OMNETPP_OUTPUT_DIR=/gcc-release
 endif
 
-
 URAELIB_SRC=$(patsubst %,$(SRC_DIR)/UraeLib/%,$(_SRC))
 URAELIB_OBJ=$(patsubst %,$(OBJ_DIR)/UraeLib/%,$(_OBJ))
 URAELIB_SRC_DIR=$(SRC_DIR)/UraeLib
@@ -43,6 +42,19 @@ RT_SRC_DIR=$(SRC_DIR)/Raytracer
 RT_OBJ_DIR=$(OBJ_DIR)/Raytracer
 RT_BIN=$(BIN_DIR)/Raytracer
 RT_LIBS=-l$(LIBNAME) -lpthread
+
+RTVIS_SRC=$(patsubst %,$(SRC_DIR)/Raytracer/%,Raytracer.cpp visualiser.cpp)
+RTVIS_OBJ=$(patsubst %,$(OBJ_DIR)/Raytracer/%,Raytracer.o visualiser.o)
+RTVIS_SRC_DIR=$(SRC_DIR)/Raytracer
+RTVIS_OBJ_DIR=$(OBJ_DIR)/Raytracer
+RTVIS_BIN=$(BIN_DIR)/RaytraceVisualiser
+
+
+ifeq ($(USE_VISUALISER),1)
+	FLAGS+=-DUSE_VISUALISER
+	RT_LIBS+=-lallegro -lallegro_primitives
+endif
+
 
 OMNETPP_SRC_DIR=$(SRC_DIR)/OMNeT++
 OMNETPP_OBJ_DIR=$(OBJ_DIR)/OMNeT++
@@ -68,12 +80,20 @@ $(LIB) : $(URAELIB_OBJ)
 $(URAELIB_OBJ_DIR)/%.o : $(URAELIB_SRC_DIR)/%.cpp 
 	$(CC) $(FLAGS) -c $< -o $@ $(INCLUDE)
 
-Raytracer : $(RT_SRC) $(RT_BIN)
+Raytracer : create_dirs Library $(RT_SRC) $(RT_BIN)
 
 $(RT_BIN) : $(RT_OBJ)
 	$(CC) $(RT_OBJ) -o $(RT_BIN) -L$(LIB_DIR) $(RT_LIBS)
 
 $(RT_OBJ_DIR)/%.o : $(RT_SRC_DIR)/%.cpp
+	$(CC) $(FLAGS) -c $< -o $@ $(INCLUDE)
+
+RaytraceVisualiser : create_dirs Library $(RTVIS_SRC) $(RTVIS_BIN)
+
+$(RTVIS_BIN) : $(RTVIS_OBJ)
+	$(CC) $(RTVIS_OBJ) -o $(RTVIS_BIN) -L$(LIB_DIR) $(RT_LIBS) -lallegro -lallegro_primitives -lallegro_image
+
+$(RTVIS_OBJ_DIR)/%.o : $(RTVIS_SRC_DIR)/%.cpp
 	$(CC) $(FLAGS) -c $< -o $@ $(INCLUDE)
 
 OMNETPP : check_veins $(LIB)
