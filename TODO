@@ -6,11 +6,11 @@
 
 2. Put in the ability to get the current link for a vehicle from TraCI - Done, but untested.
 
-3. Create Raytracer pre-sim step - Done, but untested.
+3. Create Raytracer pre-sim step - Done.
 
-4. Modify UraeData to load precomputed raytracer results - Done, but untested.
+4. Modify UraeData to load precomputed raytracer results - Done.
 
-5. Create a table with vehicle heights for corresponding classes - Done, but untested
+5. Create a table with vehicle heights for corresponding classes - Done.
 
-6. QualNet capability
+6. QualNet capability - Pending...
 
