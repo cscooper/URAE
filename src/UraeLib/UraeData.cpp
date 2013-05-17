@@ -141,7 +141,7 @@ UraeData::UraeData(
 	mLambdaBy4PiSq = pow( mWavelength / (4 * M_PI), 2 );
 	mFreeSpaceRange = sqrt( mLambdaBy4PiSq * mTransmitPower / ( mSystemLoss * mSensitivity ) );
 
-	LoadNetwork( linksFile, nodesFile, classFile, buildingFile, linkMapFile, NULL, NULL );
+	LoadNetwork( linksFile, nodesFile, classFile, buildingFile, linkMapFile, NULL, NULL, NULL );
 	ComputeSummedLinkSet();
 	ComputeBuckets();
 
@@ -156,14 +156,15 @@ UraeData::UraeData(
  * 		3. classFile - file name of the CORNER class file
  * 		4. buildingFile - file name of the CORNER building file
  * 		5. linkMapFile - file name of the CORNER link mapping file
- * 		6. riceDataFile - file name of the pre-computed K-factor data
- * 		7. carDefFile - file name of the pre-computed K-factor data
- * 		8. laneWidth - width of one lane in metres
- * 		9. lambda - wavelength of the carrier signal
- * 		10. txPower - transmission power of the signal
- * 		11. L - losses due to the system (signal processing, etc) not related to propagation
- * 		12. sensitivity - the sensitivity of the receiver
- * 		13. lpr - The loss per reflection
+ * 		6. intLinkMapFile - file name of the CORNER link mapping file
+ * 		7. riceDataFile - file name of the pre-computed K-factor data
+ * 		8. carDefFile - file name containing car definitions
+ * 		9. laneWidth - width of one lane in metres
+ * 		10. lambda - wavelength of the carrier signal
+ * 		11. txPower - transmission power of the signal
+ * 		12. L - losses due to the system (signal processing, etc) not related to propagation
+ * 		13. sensitivity - the sensitivity of the receiver
+ * 		14. lpr - The loss per reflection
  */
 UraeData::UraeData(
 		const char* linksFile,
@@ -171,6 +172,7 @@ UraeData::UraeData(
 		const char* classFile,
 		const char* buildingFile,
 		const char* linkMapFile, 
+		const char* intLinkMapFile, 
 		const char* riceDataFile, 
 		const char* carDefFile, 
 		VectorMath::Real laneWidth, 
@@ -192,7 +194,7 @@ UraeData::UraeData(
 	mLambdaBy4PiSq = pow( mWavelength / (4 * M_PI), 2 );
 	mFreeSpaceRange = sqrt( mLambdaBy4PiSq * mTransmitPower / ( mSystemLoss * mSensitivity ) );
 
-	LoadNetwork( linksFile, nodesFile, classFile, NULL, linkMapFile, riceDataFile, carDefFile );
+	LoadNetwork( linksFile, nodesFile, classFile, NULL, linkMapFile, intLinkMapFile, riceDataFile, carDefFile );
 	ComputeSummedLinkSet();
 	ComputeBuckets();
 
@@ -373,6 +375,20 @@ Real UraeData::GetK( UraeData::LinkPair p, Vector2D srcPos, Vector2D destPos ) {
 }
 
 
+/*
+ * Method: bool LinkIsInternal( std::string linkName, LinkIndexSet **pLinkIndices );
+ * Description: Returns true if the given link name is an internal link, and returns a pointer to the parent node's connected links.
+ */
+bool UraeData::LinkIsInternal( std::string linkName, LinkIndexSet **pLinkIndices ) {
+
+	if ( linkName[0] != ':' )
+		return false;
+
+	(*pLinkIndices) = &mNodeSet[ mInternalLinkIndexMap[ linkName ] ].mConnectedLinks;
+
+	return true;
+
+}
 
 
 /*
@@ -408,10 +424,10 @@ UraeData::Grid* UraeData::GetGrid(Vector2D position) {
 }
 
 /*
- * Method: void LoadNetwork( char* linksFile, char* nodesFile, const char* classFile, const char* buildingFile, const char* linkMapFile, const char* riceDataFile, const char* carDefFile );
+ * Method: void LoadNetwork( char* linksFile, char* nodesFile, const char* classFile, const char* buildingFile, const char* linkMapFile, const char* intLinkMapFile, const char* riceDataFile, const char* carDefFile );
  * Description: Loads the data from the links and nodes files.
  */
-void UraeData::LoadNetwork( const char* linksFile, const char* nodesFile, const char* classFile, const char* buildingFile, const char* linkMapFile, const char* riceDataFile, const char* carDefFile ) {
+void UraeData::LoadNetwork( const char* linksFile, const char* nodesFile, const char* classFile, const char* buildingFile, const char* linkMapFile, const char* intLinkMapFile, const char* riceDataFile, const char* carDefFile ) {
 	ifstream stream;
 	char buffer[20];
 
@@ -585,6 +601,28 @@ void UraeData::LoadNetwork( const char* linksFile, const char* nodesFile, const 
 
 	}
 
+	
+	// read the internal link mappings
+	if ( intLinkMapFile ) {
+
+		stream.open( intLinkMapFile );
+		if ( stream.fail() ) {
+			THROW_EXCEPTION( "Cannot open internal link mapping file: %s", intLinkMapFile );
+		}
+
+		stream >> dec >> numLinkMappings;
+		for ( int c = 0; c < numLinkMappings; c++ ) {
+
+			std::string strTmp;
+			int index;
+			stream >> strTmp >> index;
+			mInternalLinkIndexMap[ strTmp ] = index;
+
+		}
+
+		stream.close();
+
+	}
 
 	// read the car definitions
 	if ( carDefFile ) {
@@ -650,6 +688,7 @@ void UraeData::LoadNetwork( const char* linksFile, const char* nodesFile, const 
 
     }
 
+   
 	mMapRect.location = topLeft;
 	mMapRect.size = bottomRight - topLeft;
 

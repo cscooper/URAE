@@ -96,6 +96,7 @@ namespace Urae {
 		typedef std::vector< Building > BuildingSet;
 		typedef std::vector<long> Bucket;
 		typedef std::map<std::string,int> LinkIndexMap;
+		typedef std::map<std::string,int> InternalLinkIndexMap;
 
 		
 		/*
@@ -169,16 +170,17 @@ namespace Urae {
 		 * 		3. classFile - file name of the CORNER class file
 		 * 		4. buildingFile - file name of the CORNER building file
 		 * 		5. linkMapFile - file name of the CORNER link mapping file
-		 * 		6. riceDataFile - file name of the pre-computed K-factor data
-		 * 		7. carDefFile - file name containing car definitions
-		 * 		8. laneWidth - width of one lane in metres
-		 * 		9. lambda - wavelength of the carrier signal
-		 * 		10. txPower - transmission power of the signal
-		 * 		11. L - losses due to the system (signal processing, etc) not related to propagation
-		 * 		12. sensitivity - the sensitivity of the receiver
-		 * 		13. lpr - The loss per reflection
+		 * 		6. intLinkMapFile - file name of the CORNER link mapping file
+		 * 		7. riceDataFile - file name of the pre-computed K-factor data
+		 * 		8. carDefFile - file name containing car definitions
+		 * 		9. laneWidth - width of one lane in metres
+		 * 		10. lambda - wavelength of the carrier signal
+		 * 		11. txPower - transmission power of the signal
+		 * 		12. L - losses due to the system (signal processing, etc) not related to propagation
+		 * 		13. sensitivity - the sensitivity of the receiver
+		 * 		14. lpr - The loss per reflection
 		 */
-		UraeData( const char* linksFile, const char* nodesFile, const char* classFile, const char* buildingFile, const char* linkMapFile, const char* riceDataFile, const char *carDefFile, VectorMath::Real laneWidth, VectorMath::Real lambda, VectorMath::Real txPower, VectorMath::Real L, VectorMath::Real sensitivity, VectorMath::Real lpr, VectorMath::Real grid );
+		UraeData( const char* linksFile, const char* nodesFile, const char* classFile, const char* buildingFile, const char* linkMapFile, const char* intLinkMapFile, const char* riceDataFile, const char *carDefFile, VectorMath::Real laneWidth, VectorMath::Real lambda, VectorMath::Real txPower, VectorMath::Real L, VectorMath::Real sensitivity, VectorMath::Real lpr, VectorMath::Real grid );
 
 		~UraeData();
 
@@ -249,6 +251,12 @@ namespace Urae {
 		VectorMath::Real GetK( LinkPair p, VectorMath::Vector2D srcPos, VectorMath::Vector2D destPos );
 
 		/*
+		 * Method: bool LinkIsInternal( std::string linkName, LinkIndexSet **pLinkIndices );
+		 * Description: Returns true if the given link name is an internal link, and returns a pointer to the parent node's connected links.
+		 */
+		bool LinkIsInternal( std::string linkName, LinkIndexSet **pLinkIndices );
+
+		/*
 		 * Method: bool LinkHasMapping( std::string linkName, int *pMapping );
 		 * Description: Returns true if the given link name is mapped to an index.
 		 */
@@ -269,10 +277,10 @@ namespace Urae {
 		void CollectBucketsInRange( VectorMath::Real r, VectorMath::Vector2D p, Bucket* );
 
 		/*
-		 * Method: void LoadNetwork( char* linksFile, char* nodesFile, const char* classFile, const char* buildingFile, const char* linkMapFile, const char* riceDataFile, const char* carDefFile );
-		 * Description: Loads the data from the links, nodes, classification, buildings, link map, rice data files, and car definitions.
+		 * Method: void LoadNetwork( char* linksFile, char* nodesFile, const char* classFile, const char* buildingFile, const char* linkMapFile, const char* intLinkMapFile, const char* riceDataFile, const char* carDefFile );
+		 * Description: Loads the data from the links, nodes, classification, buildings, link map, internal link map, rice data files, and car definitions.
 		 */
-		void LoadNetwork( const char* linksFile, const char* nodesFile, const char* classFile, const char* buildingFile, const char* linkMapFile, const char* riceDataFile, const char* carDefFile );
+		void LoadNetwork( const char* linksFile, const char* nodesFile, const char* classFile, const char* buildingFile, const char* linkMapFile, const char* intLinkMapFile, const char* riceDataFile, const char* carDefFile );
 		
 		/*
 		 * Method: void ComputeSummedLinkSet();
@@ -305,6 +313,7 @@ namespace Urae {
 		NodeSet mNodeSet;									// set of nodes loaded from file
 		LinkSet mSummedLinkSet;								// link set calculated by summing lane counts of links sharing nodes
 		LinkIndexMap mLinkIndexMap;							// mapping between link indices and link names
+		InternalLinkIndexMap mInternalLinkIndexMap;			// mapping between internal link names and parent node indices
 
 		VectorMath::Real mWavelength;						// wavelength of carrier signal
 		VectorMath::Real mTransmitPower;					// transmission power

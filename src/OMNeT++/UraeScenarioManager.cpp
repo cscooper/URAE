@@ -50,6 +50,7 @@ void UraeScenarioManager::initialize(int stage) {
 											par("classFile").stringValue(),
 											NULL,
 											par("linkMapFile").stringValue(),
+											par("intLinkMapFile").stringValue(),
 											par("riceFile").stringValue(),
 											par("carDefFile").stringValue(),
 											par("laneWidth").doubleValue(),

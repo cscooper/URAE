@@ -47,6 +47,7 @@ simple UraeScenarioManager
 		string nodesFile = default("");
 		string classFile = default("");
 		string linkMapFile = default("");
+		string intLinkMapFile = default("");
 		string riceFile = default("");
 		string carDefFile = default("");
 		double laneWidth @unit("m") = default(5m);
