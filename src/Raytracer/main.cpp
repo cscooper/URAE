@@ -264,7 +264,7 @@ void ParseArgs( int argc, char *pArgv[] ) {
 		(basename+".corner.cls").c_str(),
 		(basename+".corner.bld").c_str(),
 		(basename+".corner.lnm").c_str(),
-		15, 0.124378109, 400, 1142.9, pow(10,-11), 0.25, 200
+		15, 0.124378109, 1.1666, 1142.9, pow(10,-11), 0.25, 200
 	);
 
 	Rect mapRect = pUrae->GetMapRect();
@@ -463,9 +463,12 @@ int main( int argc, char *pArgv[] ) {
 			(basename+".corner.cls").c_str(),
 			(basename+".corner.bld").c_str(),
 			(basename+".corner.lnm").c_str(),
-			15, 0.124378109, 400, 1142.9, pow(10,-11), 0.25, 200
+			15, 0.124378109, 1.1666, 1142.9, pow(10,-11), 0.25, 200
 		);
 
+		log << "Transmission range: " << pUrae->GetFreeSpaceRange() << "\n";
+		log.flush();
+		
 	} catch( Exception &e ) {
 
 		log << "Could not initialise URAE. " << e.What() << "\n";
