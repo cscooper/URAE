@@ -13,8 +13,11 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
+
 #include "CarMobility.h"
 #include "UraeScenarioManager.h"
+
+
 
 Define_Module(CarMobility);
 
@@ -34,11 +37,38 @@ CarMobility::~CarMobility() {
 }
 
 
-Coord CarMobility::getGridCell() {
+const Coord CarMobility::getGridCell() const {
 
 	return mGridCell;
 
 }
+
+
+const std::string& CarMobility::getCarType() const {
+
+	return mCarType;
+
+}
+
+
+
+const VectorMath::Vector3D& CarMobility::getCarDimensions() const {
+
+	return mCarDimensions;
+
+}
+
+
+
+void CarMobility::nextPosition(const Coord& position, std::string road_id, double speed, double angle, TraCIScenarioManager::VehicleSignal signals ) {
+
+	if ( this->road_id != road_id )
+		updateLane();
+
+	TraCIMobility::nextPosition( position, road_id, speed, angle, signals );
+
+}
+
 
 
 void CarMobility::changePosition() {
@@ -55,6 +85,33 @@ void CarMobility::changePosition() {
 		mGridCell = lastPos;
 
 }
+
+
+
+void CarMobility::initialize( int stage ) {
+
+	TraCIMobility::initialize( stage );
+
+	if ( stage == 0 ) {
+
+		mCarType = UraeScenarioManagerAccess().get()->commandGetVehicleType( getExternalId() );
+		mCarDimensions = Urae::UraeData::GetSingleton()->GetVehicleTypeDimensions( mCarType );
+
+	}
+
+}
+
+
+
+
+/** Fetch the ID of the lane the car is in. */
+void CarMobility::updateLane() {
+
+	mLaneID = UraeScenarioManagerAccess().get()->commandGetVehicleType( getExternalId() );
+
+}
+
+
 
 
 

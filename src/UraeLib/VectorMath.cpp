@@ -32,6 +32,34 @@
 
 using namespace VectorMath;
 
+
+/** Default constructor */
+OrderedIndexPair::OrderedIndexPair( int f, int s ) {
+
+	first = MIN( f, s );
+	second = ( first == f ? s : f );
+
+}
+
+/** Default destructor */
+OrderedIndexPair::~OrderedIndexPair() {  }
+
+/** Less-Than operator overload. */
+bool OrderedIndexPair::operator< ( const OrderedIndexPair &p ) const {
+
+	return first < p.first || ( first == p.first && second < p.second );
+
+}
+
+/** logical equals operator overload. */
+bool OrderedIndexPair::operator== ( const OrderedIndexPair &p ) const {
+
+	return first == p.first && second == p.second;
+
+}
+
+
+
 Vector2D &Vector2D::operator+=(const Vector2D &rhs) {
 	this->x+=rhs.x;
 	this->y+=rhs.y;
@@ -86,6 +114,30 @@ Real Vector2D::MagnitudeSq() const {
 Vector2D Vector2D::Unitise() const {
 
 	return (*this) / Magnitude();
+
+}
+
+
+
+/*
+ *	Function:	 Real DistanceSq( const Vector2D &v ) const;
+ *	Description: Computes the square distance from this vector to the given vector v.
+ */
+Real Vector2D::DistanceSq( const Vector2D &v ) const {
+
+	Real x = v.x - this->x, y = v.y - this->y;
+	return x*x + y*y;
+
+}
+
+
+/*
+ *	Function:	 Real Distance( const Vector2D &v ) const;
+ *	Description: Computes the distance from this vector to the given vector v.
+ */
+Real Vector2D::Distance( const Vector2D &v ) const {
+
+	return sqrt( DistanceSq( v ) );
 
 }
 

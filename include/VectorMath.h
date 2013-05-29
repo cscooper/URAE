@@ -50,6 +50,29 @@
 
 namespace VectorMath {
 
+	/**
+	 *	Contains a pair of indices. The class ensures that the first is always the lesser of the two.
+	 */
+	class OrderedIndexPair {
+
+	public:
+		int first;		/**< First member of the pair. */
+		int second;		/**< Second member of the pair. */
+
+		/** Default constructor */
+		OrderedIndexPair( int f = 0, int s = 0 );
+
+		/** Default destructor */
+		~OrderedIndexPair();
+
+		/** Less-Than operator overload. */
+		bool operator< ( const OrderedIndexPair & ) const;
+
+		/** logical equals operator overload. */
+		bool operator== ( const OrderedIndexPair & ) const;
+
+	};
+
 	class Rect;
 	class LineSegment;
 	typedef double Real;
@@ -94,6 +117,18 @@ namespace VectorMath {
 		 *	Description: Computes the unit form of the vector.
 		 */
 		Vector2D Unitise() const;
+		
+		/*
+		 *	Function:	 Real Distance( const Vector2D &v ) const;
+		 *	Description: Computes the squared distance from this vector to the given vector v.
+		 */
+		Real DistanceSq( const Vector2D &v ) const;
+		
+		/*
+		 *	Function:	 Real Distance( const Vector2D &v ) const;
+		 *	Description: Computes the distance from this vector to the given vector v.
+		 */
+		Real Distance( const Vector2D &v ) const;
 
 		/*
 		 *	Function:	 Real DotProduct( const Vector2D &rhs )

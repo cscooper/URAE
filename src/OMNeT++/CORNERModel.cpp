@@ -55,102 +55,6 @@ CORNERModel::~CORNERModel() {
 }
 
 
-Urae::UraeData::Classification CORNERModel::getClassification( std::string txName, std::string rxName, Coord txPos, Coord rxPos, double *k ) {
-
-	UraeData *pData = UraeData::GetSingleton();
-	int txIndex = 0;
-	bool txHasMapping = pData->LinkHasMapping( txName, &txIndex ); 
-	int rxIndex = 0;
-	bool rxHasMapping = pData->LinkHasMapping( rxName, &rxIndex ); 
-
-	if ( txHasMapping && rxHasMapping ) {
-		// We have a mapping for both links
-		(*k) = pData->GetK( UraeData::LinkPair(txIndex,rxIndex), Vector2D(txPos.x,txPos.y), Vector2D(rxPos.x,rxPos.y) );
-		return pData->GetClassification( txIndex, rxIndex );
-	}
-
-	// otherwise, we may have one car on an internal edge
-	if ( txHasMapping != rxHasMapping ) {
-
-		if ( !txHasMapping )
-			return getClassificationFromOneInternal( txName, rxIndex, txPos, rxPos, k );
-		if ( !rxHasMapping )
-			return getClassificationFromOneInternal( rxName, txIndex, txPos, rxPos, k );
-
-	}
-
-	// otherwise we have both cars on internal links.
-	return getClassificationFromInternalLinks( txName, rxName, txPos, rxPos, k );
-
-}
-
-
-
-Urae::UraeData::Classification CORNERModel::getClassificationFromOneInternal( std::string internalName, int otherIndex, Coord txPos, Coord rxPos, double *k ) {
-
-	UraeData *pData = UraeData::GetSingleton();
-	UraeData::LinkIndexSet *pSet;
-	bool isInternal = pData->LinkIsInternal( internalName, &pSet );
-
-	UraeData::LinkIndexSet::iterator it;
-	UraeData::Classification bestClass;
-	int internalIndex = -1;
-
-	bestClass.mClassification = Classifier::OutOfRange;
-	for ( AllInVector( it, (*pSet) ) ) {
-
-		UraeData::Classification c = pData->GetClassification( *it, otherIndex );
-		if ( c.mClassification <= bestClass.mClassification ) {
-
-			bestClass = c;
-			internalIndex = *it;
-
-		}
-
-	}
-
-	(*k) = pData->GetK( UraeData::LinkPair(internalIndex,otherIndex), Vector2D(txPos.x,txPos.y), Vector2D(rxPos.x,rxPos.y) );
-	return bestClass;
-
-}
-
-
-Urae::UraeData::Classification CORNERModel::getClassificationFromInternalLinks( std::string txName, std::string rxName, Coord txPos, Coord rxPos, double *k ) {
-
-	UraeData *pData = UraeData::GetSingleton();
-	UraeData::LinkIndexSet *pTxSet, *pRxSet;
-	bool txIsInternal = pData->LinkIsInternal( txName, &pTxSet );
-	bool rxIsInternal = pData->LinkIsInternal( rxName, &pRxSet );
-
-	UraeData::LinkIndexSet::iterator txIt, rxIt;
-	UraeData::Classification bestClass;
-	int txIndex = -1, rxIndex = -1;
-
-	bestClass.mClassification = Classifier::OutOfRange;
-
-	for ( AllInVector( txIt, (*pTxSet) ) ) {
-
-		for ( AllInVector( rxIt, (*pRxSet) ) ) {
-
-			UraeData::Classification c = pData->GetClassification( *txIt, *rxIt );
-			if ( c.mClassification <= bestClass.mClassification ) {
-
-				bestClass = c;
-				txIndex = *txIt;
-				rxIndex = *rxIt;
-
-			}
-
-		}
-
-	}
-
-	(*k) = pData->GetK( UraeData::LinkPair(txIndex,rxIndex), Vector2D(txPos.x,txPos.y), Vector2D(rxPos.x,rxPos.y) );
-	return bestClass;
-
-}
-
-
 void CORNERModel::filterSignal( AirFrame *frame, const Coord& sendersPos, const Coord& receiverPos ) {
 
 	Signal& signal = frame->getSignal();
@@ -177,7 +81,9 @@ void CORNERModel::filterSignal( AirFrame *frame, const Coord& sendersPos, const 
 		rxRoadId = pRsuRx->getRoadId();
 	Coord posR = pManager->ConvertCoords( receiverPos );
 
-	c = getClassification( txRoadId, rxRoadId, posT, posR, &kFactor );
+	c = UraeData::GetSingleton()->GetClassification( txRoadId, rxRoadId, Vector2D(posT.x,posT.y), Vector2D(posR.x,posR.y) );
+	if ( c.mClassification == Classifier::LOS )
+		kFactor = UraeData::GetSingleton()->GetK( c.mLinkPair, Vector2D(posT.x,posT.y), Vector2D(posR.x,posR.y) );
 
 	signal.addAttenuation(
 			new CORNERMapping(

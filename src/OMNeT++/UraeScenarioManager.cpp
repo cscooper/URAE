@@ -108,10 +108,10 @@ int UraeScenarioManager::getGridSize() const {
 
 void UraeScenarioManager::updateModuleGrid( CarMobility *pMod, Coord prev, Coord next ) {
 
-	if ( prev.x > 0 && prev.y > 0 )
+	if ( prev.x >= 0 && prev.y >= 0 )
 		mGridLookup[(int)prev.x][(int)prev.y].erase( std::remove( mGridLookup[(int)prev.x][(int)prev.y].begin(), mGridLookup[(int)prev.x][(int)prev.y].end(), pMod ), mGridLookup[(int)prev.x][(int)prev.y].end() );
 
-	if ( next.x > 0 && next.y > 0 )
+	if ( next.x >= 0 && next.y >= 0 )
 		mGridLookup[(int)next.x][(int)next.y].push_back( pMod );
 
 }
@@ -126,6 +126,13 @@ const UraeScenarioManager::GridCell& UraeScenarioManager::getGridCell( int x, in
 std::string UraeScenarioManager::commandGetVehicleType( std::string vehicleId ) {
 
 	return genericGetString( CMD_GET_VEHICLE_VARIABLE, vehicleId, VAR_TYPE, RESPONSE_GET_VEHICLE_VARIABLE );
+
+}
+
+
+std::string UraeScenarioManager::commandGetVehicleLaneId( std::string vehicleId ) {
+
+	return genericGetString( CMD_GET_VEHICLE_VARIABLE, vehicleId, VAR_LANE_ID, RESPONSE_GET_VEHICLE_VARIABLE );
 
 }
 

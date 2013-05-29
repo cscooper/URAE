@@ -310,25 +310,19 @@ UraeData::Link *UraeData::GetSummedLink( int index ) {
  * Description: Get the CORNER classification between the given links.
  */
 UraeData::Classification UraeData::GetClassification( int l1, int l2 ) {
-	std::pair<int,int> linkPair;
-	
-	if (l1 < l2) {
-		linkPair.first = l1;
-		linkPair.second = l2;
-	} else {
-		linkPair.first = l2;
-		linkPair.second = l1;
-	}
+
+	OrderedIndexPair linkPair(l1,l2);
 
 	ClassificationMap::iterator cm = mClassificationMap.find(linkPair);
 	if ( cm != mClassificationMap.end() ) {
 		return cm->second;
-	} else {
-		Classification c;
-		c.mClassification = Classifier::OutOfRange;
-		c.mFullNodeCount = INT_MAX;
-		return c;
 	}
+
+	Classification c;
+	c.mClassification = Classifier::OutOfRange;
+	c.mFullNodeCount = INT_MAX;
+	return c;
+
 }
 
 
@@ -344,23 +338,60 @@ UraeData::Classification UraeData::GetClassification( std::string link1, std::st
 
 
 
+/**
+ *	Get the classification and k factor between the given points.
+ */
+UraeData::Classification UraeData::GetClassification( std::string txName, std::string rxName, Vector2D txPos, Vector2D rxPos ) {
+
+	int txIndex = 0;
+	bool txHasMapping = LinkHasMapping( txName, &txIndex ); 
+	int rxIndex = 0;
+	bool rxHasMapping = LinkHasMapping( rxName, &rxIndex ); 
+
+	if ( txHasMapping && rxHasMapping ) {
+		// We have a mapping for both links
+		return GetClassification( txIndex, rxIndex );
+	}
+
+	// otherwise, we may have one car on an internal edge
+	if ( txHasMapping != rxHasMapping ) {
+
+		if ( !txHasMapping )
+			return GetClassificationFromOneInternal( txName, rxIndex, txPos, rxPos );
+		if ( !rxHasMapping )
+			return GetClassificationFromOneInternal( rxName, txIndex, txPos, rxPos );
+
+	}
+
+	// otherwise we have both cars on internal links.
+	return GetClassificationFromInternalLinks( txName, rxName, txPos, rxPos );
+
+}
+
+
+
+
+
+
 /*
  * Method: VectorMath::Real GetK( LinkPair p, Vector2D srcPos, Vector2D destPos );
  * Description: Get the pre-computed k-factor between the given source and destination.
  */
-Real UraeData::GetK( UraeData::LinkPair p, Vector2D srcPos, Vector2D destPos ) {
+Real UraeData::GetK( VectorMath::OrderedIndexPair p, Vector2D srcPos, Vector2D destPos ) {
 
 	Real k = 0;
 	Real sMin = DBL_MAX, dMin = DBL_MAX;
-	RiceFactorData::iterator riceIt;
 
-	if ( mRiceFactorData.find(p) == mRiceFactorData.end() && mRiceFactorData.find( LinkPair(p.second,p.first) ) == mRiceFactorData.end() )
+	RiceFactorMap::iterator pData = mRiceFactorData.find(p);
+	if ( pData == mRiceFactorData.end() )
 		return 0;
 
-	for ( AllInVector( riceIt, mRiceFactorData[p] ) ) {
+	RiceFactorData::iterator riceIt = pData->second.begin(), riceEnd = pData->second.end();
 
-		Real sDiff = (     riceIt->mSource- srcPos).MagnitudeSq();
-		Real dDiff = (riceIt->mDestination-destPos).MagnitudeSq();
+	for ( ; riceIt != riceEnd; riceIt++ ) {
+
+		Real sDiff = srcPos.DistanceSq( riceIt->mSource );
+		Real dDiff = destPos.DistanceSq( riceIt->mDestination );
 
 		if ( sMin >= sDiff && dMin >= dDiff ) {
 			sMin = sDiff;
@@ -501,7 +532,6 @@ void UraeData::LoadNetwork( const char* linksFile, const char* nodesFile, const 
 		}
 
 		stream >> dec >> numClassInFile;
-		pair<int,int> linkPair;
 		int link1, link2;
 
 		Classification tempClass;
@@ -526,9 +556,8 @@ void UraeData::LoadNetwork( const char* linksFile, const char* nodesFile, const 
 
 			}
 
-			linkPair.first = link1;
-			linkPair.second = link2;
-			mClassificationMap[ linkPair ] = tempClass;
+			tempClass.mLinkPair = VectorMath::OrderedIndexPair(link1,link2);
+			mClassificationMap[ tempClass.mLinkPair ] = tempClass;
 
 		}
 
@@ -665,10 +694,11 @@ void UraeData::LoadNetwork( const char* linksFile, const char* nodesFile, const 
         stream >> dec >> numRice;
         for ( int c = 0; c < numRice; c++ ) {
 
-            LinkPair p;
+            int link1, link2;
             int nPoints = 0;
-            stream >> p.first >> p.second >> nPoints;
-            mRiceFactorData[p] = RiceFactorData();
+            stream >> link1 >> link2 >> nPoints;
+			VectorMath::OrderedIndexPair p(link1,link2);
+            RiceFactorData *pData = &mRiceFactorData[p];
             for ( int n = 0; n < nPoints; n++ ) {
 
                 RiceFactorEntry e;
@@ -678,7 +708,7 @@ void UraeData::LoadNetwork( const char* linksFile, const char* nodesFile, const 
                     e.mKfactor = DBL_MAX;
                 else
                     e.mKfactor = atof( strK.c_str() );
-                mRiceFactorData[p].push_back( e );
+                pData->push_back( e );
 
             }
 
@@ -851,4 +881,63 @@ void UraeData::CollectBucketsInRange( VectorMath::Real r, VectorMath::Vector2D p
 
 
 
+UraeData::Classification UraeData::GetClassificationFromOneInternal( std::string internalName, int otherIndex, Vector2D txPos, Vector2D rxPos ) {
+
+	LinkIndexSet *pSet;
+	bool isInternal = LinkIsInternal( internalName, &pSet );
+
+	LinkIndexSet::iterator it;
+	Classification bestClass;
+	int internalIndex = -1;
+
+	bestClass.mClassification = Classifier::OutOfRange;
+	for ( AllInVector( it, (*pSet) ) ) {
+
+		Classification c = GetClassification( *it, otherIndex );
+		if ( c.mClassification <= bestClass.mClassification ) {
+
+			bestClass = c;
+			internalIndex = *it;
+
+		}
+
+	}
+
+	return bestClass;
+
+}
+
+
+UraeData::Classification UraeData::GetClassificationFromInternalLinks( std::string txName, std::string rxName, Vector2D txPos, Vector2D rxPos ) {
+
+	LinkIndexSet *pTxSet, *pRxSet;
+	bool txIsInternal = LinkIsInternal( txName, &pTxSet );
+	bool rxIsInternal = LinkIsInternal( rxName, &pRxSet );
+
+	LinkIndexSet::iterator txIt, rxIt;
+	Classification bestClass;
+	int txIndex = -1, rxIndex = -1;
+
+	bestClass.mClassification = Classifier::OutOfRange;
+
+	for ( AllInVector( txIt, (*pTxSet) ) ) {
+
+		for ( AllInVector( rxIt, (*pRxSet) ) ) {
+
+			Classification c = GetClassification( *txIt, *rxIt );
+			if ( c.mClassification <= bestClass.mClassification ) {
+
+				bestClass = c;
+				txIndex = *txIt;
+				rxIndex = *rxIt;
+
+			}
+
+		}
+
+	}
+
+	return bestClass;
+
+}
 

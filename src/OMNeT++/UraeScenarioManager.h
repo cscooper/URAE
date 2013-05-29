@@ -38,6 +38,7 @@ public:
 	const GridCell& getGridCell( int x, int y ) const;
 
 	std::string commandGetVehicleType(std::string vehicleId);
+	std::string commandGetVehicleLaneId(std::string vehicleId);
 	bool commandCreateRoute(std::string routeId,std::list<std::string> edgeList);
 
 	std::map<std::string, cModule*> *getManagedHostsPtr();

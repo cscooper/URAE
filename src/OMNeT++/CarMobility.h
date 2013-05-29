@@ -18,6 +18,7 @@
 
 #include <omnetpp.h>
 #include "TraCIMobility.h"
+#include "UraeData.h"
 
 /**
  * CarMobility.
@@ -29,16 +30,38 @@ class CarMobility : public TraCIMobility
 {
 
 public:
+	/** Default constructor */
 	CarMobility();
+	/** Default destructor */
 	virtual ~CarMobility();
 
-	Coord getGridCell();
+	/** Get the current grid cell of this car. */
+	const Coord getGridCell() const;
 
+	/** Get the name of the car's type. */
+	const std::string& getCarType() const;
+
+	/** Get the dimensions of the car. */
+	const VectorMath::Vector3D& getCarDimensions() const;
+
+	/** Next position of the car. */
+	virtual void nextPosition(const Coord& position, std::string road_id = "", double speed = -1, double angle = -1, TraCIScenarioManager::VehicleSignal signals = TraCIScenarioManager::VEH_SIGNAL_UNDEF);
+
+	/** Handle position change. */
 	virtual void changePosition();
+
+	/** Initialise car parameters. */
+	virtual void initialize( int );
 
 protected:
 
-    Coord mGridCell;	/**< The grid cell in which this car is located. */
+	/** Fetch the ID of the lane the car is in. */
+	void updateLane();
+
+	std::string mLaneID;					/**< The ID of the lane this car is on. */
+	Coord mGridCell;						/**< The grid cell in which this car is located. */
+	std::string mCarType;					/**< The type of car. */
+	VectorMath::Vector3D mCarDimensions;	/**< The dimensions of the vehicle. */
 
 };
 

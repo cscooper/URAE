@@ -710,6 +710,7 @@ int main( int argc, char *pArgv[] ) {
 	ofstream outputFile;
 	char strF[200];
 	sprintf( strF, "%s-%d.urae.k", basename.c_str(), runNumber );
+	outputFile.precision( 12 );
 	outputFile.open( strF );
 	outputFile << riceData.size() << "\n";
 
@@ -724,6 +725,8 @@ int main( int argc, char *pArgv[] ) {
 			outputFile << dataIt->mSrcDestPair.first.x << " " << dataIt->mSrcDestPair.first.y << " " << dataIt->mSrcDestPair.second.x << " " << dataIt->mSrcDestPair.second.y << " ";
 			if ( dataIt->mKfactor == DBL_MAX )
 				outputFile << "inf\n";
+			else if ( dataIt->mKfactor == -1 )
+				outputFile << "0\n";
 			else
 				outputFile << dataIt->mKfactor << "\n";
 

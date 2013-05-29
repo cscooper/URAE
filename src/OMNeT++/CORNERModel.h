@@ -34,10 +34,6 @@ public:
 	CORNERModel( simtime_t i );
 	virtual ~CORNERModel();
 
-	Urae::UraeData::Classification getClassification( std::string txName, std::string rxName, Coord, Coord, double *k );
-	Urae::UraeData::Classification getClassificationFromOneInternal( std::string internalName, int otherIndex, Coord, Coord, double *k );
-	Urae::UraeData::Classification getClassificationFromInternalLinks( std::string txName, std::string rxName, Coord, Coord, double *k );
-
 	virtual void filterSignal( AirFrame *frame, const Coord& sendersPos, const Coord& receiverPos );
 };
 

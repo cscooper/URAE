@@ -72,12 +72,13 @@ namespace Urae {
 		typedef std::vector< VectorMath::LineSegment > LineSet;
                 
 		struct Classification {
-			int mClassification;					// the classification
-			int mNodeSet[2];						// the set of junctions in this classification
-			int mFullNodeCount;						// the full number of nodes that had to be traversed to get this classification
-			VectorMath::Real mMainStreetLaneCount;	// number of lanes in the sidestreet for NLOS1/2 calculations.
-			VectorMath::Real mSideStreetLaneCount;	// number of lanes in the sidestreet for NLOS1/2 calculations.
-			VectorMath::Real mParaStreetLaneCount;	// number of lanes in the sidestreet for NLOS2 calculations.
+			VectorMath::OrderedIndexPair mLinkPair;	/**< The pair of links between which this classification is valid. */
+			int mClassification;					/**< The classification. */
+			int mNodeSet[2];						/**< The set of junctions in this classification. */
+			int mFullNodeCount;						/**< The full number of nodes that had to be traversed to get this classification. */
+			VectorMath::Real mMainStreetLaneCount;	/**< Number of lanes in the sidestreet for NLOS1/2 calculations. */
+			VectorMath::Real mSideStreetLaneCount;	/**< Number of lanes in the sidestreet for NLOS1/2 calculations. */
+			VectorMath::Real mParaStreetLaneCount;	/**< Number of lanes in the sidestreet for NLOS2 calculations. */
 		};
 
 		struct Building {
@@ -92,13 +93,12 @@ namespace Urae {
 		typedef std::vector<Link> LinkSet;
 		typedef std::vector<Node> NodeSet;
 		typedef std::pair<int,int> LinkPair;
-		typedef std::map< LinkPair, Classification > ClassificationMap;
+		typedef std::map< VectorMath::OrderedIndexPair, Classification > ClassificationMap;
 		typedef std::vector< Building > BuildingSet;
 		typedef std::vector<long> Bucket;
 		typedef std::map<std::string,int> LinkIndexMap;
 		typedef std::map<std::string,int> InternalLinkIndexMap;
 
-		
 		/*
 		 * Name: Grid
 		 * Description: Contains the rectangle representing the current grid and the list of links in the grid
@@ -118,7 +118,7 @@ namespace Urae {
 		};
 
 		typedef std::vector<RiceFactorEntry> RiceFactorData;
-		typedef std::map<LinkPair,RiceFactorData> RiceFactorMap;
+		typedef std::map<VectorMath::OrderedIndexPair,RiceFactorData> RiceFactorMap;
 
 		struct CarDefinition {
 
@@ -244,11 +244,16 @@ namespace Urae {
 		 */
 		Classification GetClassification( std::string link1, std::string link2 );
 
+		/**
+		 *	Get the classification between the given points.
+		 */
+		Classification GetClassification( std::string txName, std::string rxName, VectorMath::Vector2D, VectorMath::Vector2D );
+
 		/*
 		 * Method: VectorMath::Real GetK( LinkPair p, Vector2D srcPos, Vector2D destPos );
 		 * Description: Get the pre-computed k-factor between the given source and destination.
 		 */
-		VectorMath::Real GetK( LinkPair p, VectorMath::Vector2D srcPos, VectorMath::Vector2D destPos );
+		VectorMath::Real GetK( VectorMath::OrderedIndexPair p, VectorMath::Vector2D srcPos, VectorMath::Vector2D destPos );
 
 		/*
 		 * Method: bool LinkIsInternal( std::string linkName, LinkIndexSet **pLinkIndices );
@@ -302,6 +307,17 @@ namespace Urae {
 		VectorMath::Vector3D GetVehicleTypeDimensions( std::string );
 
 	protected:
+
+		/**
+		 * Get the classification between two positions when one link is internal.
+		 */
+		Classification GetClassificationFromOneInternal( std::string internalName, int otherIndex, VectorMath::Vector2D, VectorMath::Vector2D );
+
+		/**
+		 * Get the classification between two positions when both links are internal.
+		 */
+		Classification GetClassificationFromInternalLinks( std::string txName, std::string rxName, VectorMath::Vector2D, VectorMath::Vector2D );
+
 
 		Bucket **m_ppBuckets;
 		unsigned int mBucketX;

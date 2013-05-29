@@ -91,6 +91,9 @@ void CarShadowModel::filterSignal( AirFrame *frame, const Coord& sendersPos, con
 	CarMobility *pSenderMob = dynamic_cast<CarMobility*>(dynamic_cast<ChannelAccess *const>(frame->getSenderModule())->getMobilityModule());
 	CarMobility *pReceiverMob = dynamic_cast<CarMobility*>(dynamic_cast<ChannelAccess *const>(frame->getArrivalModule())->getMobilityModule());
 
+	std::string txRoadId, rxRoadId;
+	UraeData::Classification c;
+
 	double txHeight;
 	double rxHeight;
 	int xStartTmp, xEndTmp;
@@ -102,10 +105,12 @@ void CarShadowModel::filterSignal( AirFrame *frame, const Coord& sendersPos, con
 		txHeight = txRsuMob->getHeight();
 		xStartTmp = txRsuMob->getCurrentPosition().x / pManager->getGridSize();
 		yStartTmp = txRsuMob->getCurrentPosition().y / pManager->getGridSize();
+		txRoadId = txRsuMob->getRoadId();
 	} else {
-		txHeight = UraeData::GetSingleton()->GetVehicleTypeDimensions( pManager->commandGetVehicleType( pSenderMob->getExternalId() ) ).z;
+		txHeight = pSenderMob->getCarDimensions().z;
 		xStartTmp = pSenderMob->getGridCell().x;
 		yStartTmp = pSenderMob->getGridCell().y;
+		txRoadId = pSenderMob->getRoadId();
 	}
 
 	if ( !pReceiverMob ) {
@@ -115,11 +120,21 @@ void CarShadowModel::filterSignal( AirFrame *frame, const Coord& sendersPos, con
 		rxHeight = rxRsuMob->getHeight();
 		xEndTmp = rxRsuMob->getCurrentPosition().x / pManager->getGridSize();
 		yEndTmp = rxRsuMob->getCurrentPosition().y / pManager->getGridSize();
+		rxRoadId = rxRsuMob->getRoadId();
 	} else {
-		rxHeight = UraeData::GetSingleton()->GetVehicleTypeDimensions( pManager->commandGetVehicleType( pReceiverMob->getExternalId() ) ).z;
+		rxHeight = pReceiverMob->getCarDimensions().z;
 		xEndTmp = pReceiverMob->getGridCell().x;
 		yEndTmp = pReceiverMob->getGridCell().y;
+		rxRoadId = pReceiverMob->getRoadId();
 	}
+
+	Coord posT = pManager->ConvertCoords( sendersPos );
+	Coord posR = pManager->ConvertCoords( receiverPos );
+
+	c = UraeData::GetSingleton()->GetClassification( txRoadId, rxRoadId, Vector2D(posT.x,posT.y), Vector2D(posR.x,posR.y) );
+
+	if ( c.mClassification != Classifier::LOS )
+		return;	// we don't care about this model if they're not in LOS
 
 	bool bFound = false;
 
@@ -159,7 +174,7 @@ void CarShadowModel::filterSignal( AirFrame *frame, const Coord& sendersPos, con
 				heading2 = Vector2D( heading1.y, -heading1.x );
 				LineSegment d1, d2;
 
-				Vector3D currDims = UraeData::GetSingleton()->GetVehicleTypeDimensions( pManager->commandGetVehicleType( pMob->getExternalId() ) );
+				Vector3D currDims = pMob->getCarDimensions();
 				d1 = LineSegment( p+heading1*currDims.y/2+heading2*currDims.x/2, p-heading1*currDims.y/2-heading2*currDims.x/2 );
 				d2 = LineSegment( p+heading1*currDims.y/2-heading2*currDims.x/2, p-heading1*currDims.y/2+heading2*currDims.x/2 );
 
