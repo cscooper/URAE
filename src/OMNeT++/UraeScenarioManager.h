@@ -34,6 +34,9 @@ public:
 	virtual void finish();
 
 	int getGridSize() const;
+	int getGridWidth() const;
+	int getGridHeight() const;
+
 	void updateModuleGrid( CarMobility*, Coord, Coord );
 	const GridCell& getGridCell( int x, int y ) const;
 
@@ -45,6 +48,9 @@ public:
 	Coord ConvertCoords( Coord p, bool fromTraci = false );
 	double ConvertAngle( double a, bool fromTraci = false );
 
+	void SetFilenames( std::string linkFile, std::string nodeFile, std::string classFile, std::string linkMappingFile, std::string internalLinkMappingFile, std::string riceFile, std::string carDefinitionFile );
+
+
 protected:
 	Urae::UraeData *mUraeData;
 	Urae::Fading *mFading;
@@ -53,6 +59,15 @@ protected:
 	int mGridWidth;
 	int mGridHeight;
 	int mGridSize;
+
+	bool mParametersFromConfig;					/**< If true, this gets the following filenames from the omnetpp.ini file. */
+	std::string mLinkFile;
+	std::string mNodeFile;
+	std::string mClassificationFile;
+	std::string mLinkMappingFile;
+	std::string mInternalLinkMappingFile;
+	std::string mRiceFile;
+	std::string mCarDefinitionFile;
 
 };
 

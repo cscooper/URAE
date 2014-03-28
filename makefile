@@ -43,6 +43,14 @@ RT_OBJ_DIR=$(OBJ_DIR)/Raytracer
 RT_BIN=$(BIN_DIR)/Raytracer
 RT_LIBS=-l$(LIBNAME) -lpthread
 
+
+BS_SRC=$(patsubst %,$(SRC_DIR)/BuildingSolver/%, main.cpp)
+BS_OBJ=$(patsubst %,$(OBJ_DIR)/BuildingSolver/%, main.o)
+BS_SRC_DIR=$(SRC_DIR)/BuildingSolver
+BS_OBJ_DIR=$(OBJ_DIR)/BuildingSolver
+BS_BIN=$(BIN_DIR)/BuildingSolver
+BS_LIBS=-l$(LIBNAME) -lpthread
+
 RTVIS_SRC=$(patsubst %,$(SRC_DIR)/Raytracer/%,Raytracer.cpp visualiser.cpp)
 RTVIS_OBJ=$(patsubst %,$(OBJ_DIR)/Raytracer/%,Raytracer.o visualiser.o)
 RTVIS_SRC_DIR=$(SRC_DIR)/Raytracer
@@ -64,11 +72,12 @@ LIBRARY=$(LIB_DIR)/$(LIBNAME)
 
 .PHONY: check_veins create_dirs check_install_directory
 
-all : create_dirs Library Raytracer OMNETPP
+all : create_dirs Library Raytracer BuildingSolver OMNETPP
 
 create_dirs :
 	mkdir -p $(OBJ_DIR)/UraeLib
 	mkdir -p $(OBJ_DIR)/Raytracer
+	mkdir -p $(OBJ_DIR)/BuildingSolver
 	mkdir -p $(OMNETPP_OBJ_DIR)
 
 Library : $(SRC) $(LIB)
@@ -86,6 +95,14 @@ $(RT_BIN) : $(RT_OBJ)
 	$(CC) $(RT_OBJ) -o $(RT_BIN) -L$(LIB_DIR) $(RT_LIBS)
 
 $(RT_OBJ_DIR)/%.o : $(RT_SRC_DIR)/%.cpp
+	$(CC) $(FLAGS) -c $< -o $@ $(INCLUDE)
+
+BuildingSolver : create_dirs Library $(BS_SRC) $(BS_BIN)
+
+$(BS_BIN) : $(BS_OBJ)
+	$(CC) $(BS_OBJ) -o $(BS_BIN) -L$(LIB_DIR) $(BS_LIBS) -lallegro -lallegro_primitives -lallegro_image -lallegro_font -lallegro_ttf
+
+$(BS_OBJ_DIR)/%.o : $(BS_SRC_DIR)/%.cpp
 	$(CC) $(FLAGS) -c $< -o $@ $(INCLUDE)
 
 RaytraceVisualiser : create_dirs Library $(RTVIS_SRC) $(RTVIS_BIN)

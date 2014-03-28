@@ -30,7 +30,7 @@ using namespace Urae;
 Define_Module(UraeScenarioManager);
 
 UraeScenarioManager::UraeScenarioManager() {
-	// TODO Auto-generated constructor stub
+	mParametersFromConfig = true;
 }
 
 UraeScenarioManager::~UraeScenarioManager() {
@@ -44,15 +44,25 @@ void UraeScenarioManager::initialize(int stage) {
 
 	if( stage == 0 ) {
 
+		if ( mParametersFromConfig ) {
+			mLinkFile = par("linksFile").stringValue();
+			mNodeFile = par("nodesFile").stringValue();
+			mClassificationFile = par("classFile").stringValue();
+			mLinkMappingFile = par("linkMapFile").stringValue();
+			mInternalLinkMappingFile = par("intLinkMapFile").stringValue();
+			mRiceFile = par("riceFile").stringValue();
+			mCarDefinitionFile = par("carDefFile").stringValue();
+		}
+
 		try {
-			mUraeData = new Urae::UraeData( par("linksFile").stringValue(),
-											par("nodesFile").stringValue(),
-											par("classFile").stringValue(),
+			mUraeData = new Urae::UraeData( mLinkFile.c_str(),
+											mNodeFile.c_str(),
+											mClassificationFile.c_str(),
 											NULL,
-											par("linkMapFile").stringValue(),
-											par("intLinkMapFile").stringValue(),
-											par("riceFile").stringValue(),
-											par("carDefFile").stringValue(),
+											mLinkMappingFile.c_str(),
+											mInternalLinkMappingFile.c_str(),
+											mRiceFile.c_str(),
+											mCarDefinitionFile.c_str(),
 											par("laneWidth").doubleValue(),
 											par("waveLength").doubleValue(),
 											par("txPower").doubleValue(),
@@ -102,6 +112,17 @@ int UraeScenarioManager::getGridSize() const {
 
 	return mGridSize;
 
+}
+
+
+
+int UraeScenarioManager::getGridWidth() const {
+	return mGridWidth;
+}
+
+
+int UraeScenarioManager::getGridHeight() const {
+	return mGridHeight;
 }
 
 
@@ -204,6 +225,18 @@ double UraeScenarioManager::ConvertAngle( double a, bool fromTraci ) {
 
 }
 
+
+
+void UraeScenarioManager::SetFilenames( std::string linkFile, std::string nodeFile, std::string classFile, std::string linkMappingFile, std::string internalLinkMappingFile, std::string riceFile, std::string carDefinitionFile ) {
+	mLinkFile = linkFile;
+	mNodeFile = nodeFile;
+	mClassificationFile = classFile;
+	mLinkMappingFile = linkMappingFile;
+	mInternalLinkMappingFile = internalLinkMappingFile;
+	mRiceFile = riceFile;
+	mCarDefinitionFile = carDefinitionFile;
+	mParametersFromConfig = false;
+}
 
 
 

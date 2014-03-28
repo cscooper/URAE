@@ -41,7 +41,7 @@ def main( options ):
 	f.close()
 
 	# now run the cluster script
-	clusterCmd = "~/Documents/ICTRCluster/omnet_cluster.py -s " + tempDir + " -j config,0:"+str(options.areaCount-1) + " -a 1 -U raytracerSim.temp.sh -S . -R ." 
+	clusterCmd = "~/Documents/Programming/ICTRCluster/omnet_cluster.py -s " + tempDir + " -j config,0:"+str(options.areaCount-1) + " -a 1 -U raytracerSim.temp.sh -S . -R ." 
 	if options.ignoreNodes:
 		clusterCmd += " -i " + options.ignoreNodes
 	RunCommand( clusterCmd )

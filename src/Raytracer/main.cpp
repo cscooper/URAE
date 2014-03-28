@@ -435,8 +435,6 @@ int main( int argc, char *pArgv[] ) {
 
 	string basename = runConfigs[runNumber]["basename"];
 	int raycount = atoi( runConfigs[runNumber]["raycount"].c_str() );
-	Real range = atof( runConfigs[runNumber]["raycount"].c_str() );
-	Real rangeSq = range*range;
 	Real increment = atof( runConfigs[runNumber]["increment"].c_str() );
 	int cores = atoi( runConfigs[runNumber]["cores"].c_str() );
 	Real rxGain = atof( runConfigs[runNumber]["rxGain"].c_str() );
@@ -475,6 +473,9 @@ int main( int argc, char *pArgv[] ) {
 		return -1;
 
 	}
+
+	Real range = pUrae->GetFreeSpaceRange();
+	Real rangeSq = range*range;
 
 #ifdef USE_VISUALISER
 	if ( useVisualiser )

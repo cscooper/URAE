@@ -516,6 +516,19 @@ Matrix2D Matrix2D::operator*(const Matrix2D rhs) {
 }
 
 
+Vector2D Matrix2D::operator*(const Vector2D rhs) {
+
+	return Vector2D( rhs.x*m11 + rhs.y*m21, rhs.x*m12 + rhs.y*m22 );
+
+}
+
+
+Matrix2D Matrix2D::CreateRotation( const Real theta ) {
+	return Matrix2D( cos(theta), -sin(theta), sin(theta), cos(theta) );
+}
+
+
+
 Real Random::Number() {
 	return (Real)rand() / (Real)RAND_MAX;
 }

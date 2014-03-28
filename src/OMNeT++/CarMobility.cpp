@@ -74,11 +74,19 @@ void CarMobility::nextPosition(const Coord& position, std::string road_id, doubl
 void CarMobility::changePosition() {
 
 	TraCIMobility::changePosition();
+	UraeScenarioManager *pManager = UraeScenarioManagerAccess().get();
 
-	double dim = UraeScenarioManagerAccess().get()->getGridSize();
+	double dim = pManager->getGridSize();
 	Coord lastPos = mGridCell;
-	mGridCell.x = (int)(move.getStartPos().x / dim);
-	mGridCell.y = (int)(move.getStartPos().y / dim);
+	mGridCell.x = (int)(fabs(move.getStartPos().x) / dim);
+	mGridCell.y = (int)(fabs(move.getStartPos().y) / dim);
+
+	if ( mGridCell.x >= pManager->getGridWidth() )
+		mGridCell.x = pManager->getGridWidth()-1;
+
+	if ( mGridCell.y >= pManager->getGridHeight() )
+		mGridCell.y = pManager->getGridHeight()-1;
+
 	if ( lastPos != mGridCell )
 		UraeScenarioManagerAccess().get()->updateModuleGrid( this, lastPos, mGridCell );
 	else

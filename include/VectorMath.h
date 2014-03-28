@@ -354,6 +354,10 @@ namespace VectorMath {
 
 		Matrix2D operator*(const Matrix2D rhs);
 
+		Vector2D operator*(const Vector2D rhs);
+
+		static Matrix2D CreateRotation( const Real theta );
+
 	};
 	
 

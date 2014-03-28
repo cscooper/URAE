@@ -108,8 +108,8 @@ void CarShadowModel::filterSignal( AirFrame *frame, const Coord& sendersPos, con
 		txRoadId = txRsuMob->getRoadId();
 	} else {
 		txHeight = pSenderMob->getCarDimensions().z;
-		xStartTmp = pSenderMob->getGridCell().x;
-		yStartTmp = pSenderMob->getGridCell().y;
+		xStartTmp = MAX( pSenderMob->getGridCell().x, 0 );
+		yStartTmp = MAX( pSenderMob->getGridCell().y, 0 );
 		txRoadId = pSenderMob->getRoadId();
 	}
 
@@ -123,8 +123,8 @@ void CarShadowModel::filterSignal( AirFrame *frame, const Coord& sendersPos, con
 		rxRoadId = rxRsuMob->getRoadId();
 	} else {
 		rxHeight = pReceiverMob->getCarDimensions().z;
-		xEndTmp = pReceiverMob->getGridCell().x;
-		yEndTmp = pReceiverMob->getGridCell().y;
+		xEndTmp = MAX( pReceiverMob->getGridCell().x, 0);
+		yEndTmp = MAX( pReceiverMob->getGridCell().y, 0);
 		rxRoadId = pReceiverMob->getRoadId();
 	}
 
