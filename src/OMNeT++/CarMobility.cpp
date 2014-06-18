@@ -115,7 +115,9 @@ void CarMobility::initialize( int stage ) {
 /** Fetch the ID of the lane the car is in. */
 void CarMobility::updateLane() {
 
-	mLaneID = UraeScenarioManagerAccess().get()->commandGetVehicleType( getExternalId() );
+	std::string s = UraeScenarioManagerAccess().get()->commandGetLaneId( getExternalId() );
+	int i = s.find("_");
+	mLaneID = atoi( s.substr( i+1 ).c_str() );
 
 }
 

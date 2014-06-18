@@ -1,5 +1,5 @@
 /*
- *  UraeData.h - Contains the building geometry and CORNER classifications for a sumo map.
+ *  UraeData.cpp - Contains the building geometry and CORNER classifications for a sumo map.
  *  Copyright (C) 2012  C. S. Cooper, A. Mukunthan
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -312,15 +312,20 @@ UraeData::Link *UraeData::GetSummedLink( int index ) {
 UraeData::Classification UraeData::GetClassification( int l1, int l2 ) {
 
 	OrderedIndexPair linkPair(l1,l2);
+	Classification c;
 
 	ClassificationMap::iterator cm = mClassificationMap.find(linkPair);
 	if ( cm != mClassificationMap.end() ) {
-		return cm->second;
-	}
 
-	Classification c;
-	c.mClassification = Classifier::OutOfRange;
-	c.mFullNodeCount = INT_MAX;
+		c = cm->second;
+		c.mFlipped = ( c.mLinkPair.first != l1 );
+
+	} else {
+
+		c.mClassification = Classifier::OutOfRange;
+		c.mFullNodeCount = INT_MAX;
+
+	}
 	return c;
 
 }
@@ -371,37 +376,143 @@ UraeData::Classification UraeData::GetClassification( std::string txName, std::s
 
 
 
+/**
+ *	Refine the given classification based on the position of vehicles.
+ */
+void UraeData::RefineClassification( UraeData::Classification &cls, VectorMath::Vector2D &s, VectorMath::Vector2D &d ) {
+
+	if ( cls.mClassification == Classifier::LOS ) {
+
+		return;	// Change nothing.
+
+	} else if ( cls.mClassification == Classifier::NLOS1 ) {
+
+		// If we're in NLOS1, then we need to check if either the source or destination are near enough to the common node to be in LOS.
+		// Get the position of the common node.
+		Vector2D &commonNode = GetNode( cls.mNodeSet[0] )->position;
+		Real sDist, dDist;
+		if ( cls.mFlipped ) {
+			sDist = GetSummedLink( cls.mLinkPair.second )->NumberOfLanes*mLaneWidth*0.5;
+			dDist = GetSummedLink( cls.mLinkPair.first  )->NumberOfLanes*mLaneWidth*0.5;
+		} else {
+			sDist = GetSummedLink( cls.mLinkPair.first  )->NumberOfLanes*mLaneWidth*0.5;
+			dDist = GetSummedLink( cls.mLinkPair.second )->NumberOfLanes*mLaneWidth*0.5;
+		}
+
+		if ( commonNode.DistanceSq( s ) < sDist*sDist || commonNode.Distance( d ) < dDist*dDist )
+			cls.mClassification = Classifier::LOS;
+
+		return;
+
+	} else {
+
+		// We're in NLOS2. We need to be a bit more tricky here.
+		// We have to get the common link. Then, if both source and destination are near enough to either of the common link's nodes,
+		// we then set them in LOS. If only one is close to the common link's node, then they're in NLOS1.
+
+		Node *n1 = GetNode( cls.mNodeSet[0] );
+		Node *n2 = GetNode( cls.mNodeSet[1] );
+
+		// Find the common link between them.
+		LinkIndexSet commonLinkSet;
+		LinkIndexSet::iterator linkIt = std::set_intersection( n1->mConnectedLinks.begin(), n1->mConnectedLinks.end(), n2->mConnectedLinks.begin(), n2->mConnectedLinks.end(), commonLinkSet.begin() );
+		commonLinkSet.resize( linkIt - commonLinkSet.begin() );
+
+#ifdef DEBUG
+		if ( commonLinkSet.size() == 0 ) {
+			// Found more or less than 1 common link. Bailing out and leaving as is.
+			std::cerr << "Found no common link between nodes " << cls.mNodeSet[0] << " and " << cls.mNodeSet[1] << ". Bailing out and leaving as is.\n";
+			return;
+		}
+
+		if ( commonLinkSet.size() > 1 ) {
+			// Found more than 1 common link. Bailing out and leaving as is.
+			std::cerr << "Found more than 1 common link between nodes " << cls.mNodeSet[0] << " and " << cls.mNodeSet[1] << ". Bailing out and leaving as is.\n";
+			return;
+		}
+
+#else // #ifdef DEBUG
+
+		if ( commonLinkSet.size() != 1 ) {
+			// Found more or less than 1 common link. Bailing out and leaving as is.
+			return;
+		}
+
+#endif // #ifdef DEBUG
+
+		// Calculate the minimum distance we need to be within.
+		Real dist = pow( GetSummedLink( *linkIt )->NumberOfLanes*mLaneWidth*0.5, 2 );
+
+		// Now work out how far from the nodes we are.
+		Real sDist, dDist;
+		if ( cls.mFlipped ) {
+			sDist = n2->position.DistanceSq( s );
+			dDist = n1->position.DistanceSq( d );
+		} else {
+			sDist = n1->position.DistanceSq( s );
+			dDist = n2->position.DistanceSq( d );
+		}
+
+		if ( sDist <= dist && dDist <= dist )
+			cls.mClassification = Classifier::LOS;			// The two nodes are in the middle of their respective intersections, and are thus in LOS.
+		else if ( ( sDist <= dist ) != ( dDist <= dist ) )
+			cls.mClassification = Classifier::NLOS1;		// One of the nodes is not in the middle of its intersection, but one is. Thus they are in NLOS1.
+
+		return;
+
+	}
+
+}
+
+
 
 
 /*
  * Method: VectorMath::Real GetK( LinkPair p, Vector2D srcPos, Vector2D destPos );
  * Description: Get the pre-computed k-factor between the given source and destination.
  */
-Real UraeData::GetK( VectorMath::OrderedIndexPair p, Vector2D srcPos, Vector2D destPos ) {
+Real UraeData::GetK( OrderedIndexPair p, Vector2D srcPos, int srcLane, Vector2D destPos, int destLane, bool flipped ) {
 
-	Real k = 0;
-	Real sMin = DBL_MAX, dMin = DBL_MAX;
+	// Get source and destination link IDs
+	unsigned int sourceLink = ( flipped ? p.second :  p.first );
+	unsigned int destLink   = ( flipped ?  p.first : p.second );
 
-	RiceFactorMap::iterator pData = mRiceFactorData.find(p);
-	if ( pData == mRiceFactorData.end() )
-		return 0;
+	// Get pointers to the link data structures.
+	Link *pSource = GetSummedLink( sourceLink );
+	Link *pDest   = GetSummedLink(   destLink );
 
-	RiceFactorData::iterator riceIt = pData->second.begin(), riceEnd = pData->second.end();
+	// Calculate how far along the links each position is. This rounds to nearest integer.
+	unsigned int sourcePos	   = floor( GetNode( pSource->nodeAindex )->position.Distance(  srcPos ) / mLengthIncrement + 0.5 );
+	unsigned int destinationPos = floor( GetNode(   pDest->nodeAindex )->position.Distance( destPos ) / mLengthIncrement + 0.5 );
 
-	for ( ; riceIt != riceEnd; riceIt++ ) {
+	// TODO: the lane indexing isn't quite right due to the summing of links in both directions.
+	// TODO: See if you can think of a way to fix this. Maybe rework the raytracer to consider links in both directions...
 
-		Real sDiff = srcPos.DistanceSq( riceIt->mSource );
-		Real dDiff = destPos.DistanceSq( riceIt->mDestination );
+	if ( sourceLink >= mRiceFactorData.size() )
+		return 0;	// Don't know this link, so assume Rayleigh.
 
-		if ( sMin >= sDiff && dMin >= dDiff ) {
-			sMin = sDiff;
-			dMin = dDiff;
-			k = riceIt->mKfactor;
-		}
+	SourceLocationList &srcLocList = mRiceFactorData[sourceLink];
+	if ( sourcePos >= srcLocList.size() )
+		return 0;	// Non-indexable position on source link, so assume Rayleigh.
 
-	}
+	SourceLaneList &srcLaneList = srcLocList[sourcePos];
+	if ( srcLane >= srcLaneList.size() )
+		return 0;	// Non-indexable lane on source link, so assume Rayleigh.
 
-	return k;
+	DestinationLookup &destLookup = srcLaneList[srcLane];
+	if ( destLookup.find( destLink ) != destLookup.end() )
+		return 0;	// No connection between this source and destination, so assume Rayleigh.
+
+	DestinationLocationList &destLocList = destLookup[destLink];
+	if ( destinationPos >= destLocList.size() )
+		return 0;	// Non-indexable position on destination link, so assume Rayleigh.
+
+	DestinationLaneList &destLaneList = destLocList[destinationPos];
+	if ( destLane >= destLaneList.size() )
+		return 0;	// Non-indexable lane on destination link, so assume Rayleigh.
+
+	// Now index the lookup.
+	return destLaneList[destLane];
 
 }
 
@@ -575,13 +686,14 @@ void UraeData::LoadNetwork( const char* linksFile, const char* nodesFile, const 
 
 		stream >> dec >> numBuildingsInFile;
 		int vertexCount, tmp;
-		Vector2D v1, v2;
+		Vector2D v1, v2, v3;
 
 		Building tempBuilding;
 		for(int c = 0; c < numBuildingsInFile; c++ ) {
 
 			tempBuilding.mId = c;
 			stream >> tmp >> tempBuilding.mPermitivity >> tempBuilding.mMaxHeight >> tempBuilding.mHeightStdDev >> vertexCount >> v1.x >> v1.y;
+			v3 = v1;
 			for ( int v = 0; v < vertexCount-1; v++ ) {
 
 				if ( topLeft.x > tempNode.position.x )
@@ -599,6 +711,7 @@ void UraeData::LoadNetwork( const char* linksFile, const char* nodesFile, const 
 
 			}
 
+			tempBuilding.mEdgeSet.push_back( LineSegment( v1, v3 ) );
 			mBuildingSet.push_back( tempBuilding );
 			tempBuilding.mEdgeSet.clear();
 
@@ -683,38 +796,78 @@ void UraeData::LoadNetwork( const char* linksFile, const char* nodesFile, const 
 	}
 
 
-    // read the pre-computed K-factors
-    if ( riceDataFile ) {
+	// read the pre-computed K-factors
+	if ( riceDataFile ) {
 
-        stream.open( riceDataFile );
-        if ( stream.fail() ) {
-            THROW_EXCEPTION( "Cannot open Rice datafile: %s", riceDataFile );
-        }
+		stream.open( riceDataFile );
+		if ( stream.fail() ) {
+			THROW_EXCEPTION( "Cannot open Rice datafile: %s", riceDataFile );
+		}
 
-        stream >> dec >> numRice;
-        for ( int c = 0; c < numRice; c++ ) {
+		stream >> dec >> mLengthIncrement;
+		stream >> dec >> numRice;
 
-            int link1, link2;
-            int nPoints = 0;
-            stream >> link1 >> link2 >> nPoints;
-			VectorMath::OrderedIndexPair p(link1,link2);
-            RiceFactorData *pData = &mRiceFactorData[p];
-            for ( int n = 0; n < nPoints; n++ ) {
+		for ( int r = 0; r < numRice; r++ ) {
 
-                RiceFactorEntry e;
-                std::string strK;
-                stream >> e.mSource.x >> e.mSource.y >> e.mDestination.x >> e.mDestination.y >> strK;
-                if ( strK == "inf" )
-                    e.mKfactor = DBL_MAX;
-                else
-                    e.mKfactor = atof( strK.c_str() );
-                pData->push_back( e );
+			// Read the index of the source link and number of locations.
+			SourceLocationList srcLocList;
+			int srcId, srcLocCount;
+			stream >> srcId >> srcLocCount;
+			for ( int srcLoc = 0; srcLoc < srcLocCount; srcLoc++ ) {
 
-            }
+				// Read the number of source lanes.
+				SourceLaneList srcLaneList;
+				int srcLaneCount;
+				stream >> srcLaneCount;
+				for ( int srcLane = 0; srcLane < srcLaneCount; srcLane++ ) {
 
-        }
+					// Read the number of destination links.
+					DestinationLookup destLookup;
+					int destLinkCount;
+					stream >> destLinkCount;
+					for ( int destLink = 0; destLink < destLinkCount; destLink++ ) {
 
-        stream.close();
+						// Read the index of the destination link and the number of locations therein.
+						DestinationLocationList destLocList;
+						int destId, destLocCount;
+						stream >> destId >> destLocCount;
+						for ( int destLoc = 0; destLoc < destLocCount; destLoc++ ) {
+
+							// Read the number of destination lanes.
+							DestinationLaneList newDestLane;
+							int destLaneCount;
+							stream >> destLaneCount;
+							for ( int destLane = 0; destLane < destLaneCount; destLane++ ) {
+
+								// Read the K-Factor
+								std::string kStr;
+								stream >> kStr;
+								if ( "inf" == kStr )
+									newDestLane.push_back( DBL_MAX );
+								else
+									newDestLane.push_back( atof( kStr.c_str() ) );
+
+							}
+
+							destLocList.push_back( newDestLane );
+
+						}
+
+						destLookup[destId] = destLocList;
+
+					}
+
+					srcLaneList.push_back( destLookup );
+
+				}
+
+				srcLocList.push_back( srcLaneList );
+
+			}
+
+			mRiceFactorData.push_back( srcLocList );
+
+		}
 
     }
 
@@ -871,7 +1024,8 @@ void UraeData::CollectBucketsInRange( VectorMath::Real r, VectorMath::Vector2D p
 	for ( i = 0; i < mBucketX; i++ ) {
 		for ( j = 0; j < mBucketY; j++ ) {
 			Vector2D c = mCentroid + Vector2D( i, j ) * mBucketSize;
-			if ( ( p - c ).Magnitude() < r )
+			Real dist = ( p - c ).Magnitude();
+			if ( dist < mBucketSize )
 				pBucket->insert( pBucket->end(), m_ppBuckets[i][j].begin(), m_ppBuckets[i][j].end() );
 		}
 	}

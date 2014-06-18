@@ -48,8 +48,11 @@ AnalogueModel* UraePhyLayer::getAnalogueModelFromName( std::string name, Paramet
 	if ( name == "CORNER" ) {
 
 		simtime_t interval = params["interval"].doubleValue();
+		double k = -1;
+		if ( params.find("k") != params.end() )
+			k = params["k"].doubleValue();
 
-		return new CORNERModel( interval );
+		return new CORNERModel( interval, k );
 
 	} else if ( name == "CarShadow" ) {
 

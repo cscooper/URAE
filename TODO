@@ -2,9 +2,9 @@
 // TO-DO LIST FOR URAE //
 /////////////////////////
 
-1. The shadow model needs to get vehicle dimensions from SUMO through TraCI - Done, but untested.
+1. The shadow model needs to get vehicle dimensions from SUMO through TraCI - Done.
 
-2. Put in the ability to get the current link for a vehicle from TraCI - Done, but untested.
+2. Put in the ability to get the current link for a vehicle from TraCI - Done.
 
 3. Create Raytracer pre-sim step - Done.
 

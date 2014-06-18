@@ -29,6 +29,7 @@ class RsuMobility : public ConstSpeedMobility
 public:
 	double getHeight() { return mHeight; }
 	std::string getRoadId() { return mRoadId; }
+	int getLaneId() { return 0; }
 
 protected:
     virtual void initialize(int);

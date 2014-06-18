@@ -250,7 +250,7 @@ int main( int argc, char **ppArgv ) {
 	newBuilding.mId = 0;
 	newBuilding.mEdgeSet.push_back(buildingEdges[0]);
 	buildingEdges.erase( buildingEdges.begin() );
-	newBuilding.mPermitivity = 0;
+	newBuilding.mPermitivity = 3.743;
 	newBuilding.mMaxHeight = 0;
 	newBuilding.mHeightStdDev = 0;
 
@@ -305,7 +305,7 @@ int main( int argc, char **ppArgv ) {
 		outputStream << buildingIt->mId << " " << buildingIt->mPermitivity << " " << buildingIt->mMaxHeight << " " << buildingIt->mHeightStdDev << " " << buildingIt->mEdgeSet.size();
 		for ( LineList::iterator lineIt = buildingIt->mEdgeSet.begin(); lineIt != buildingIt->mEdgeSet.end(); lineIt++ )
 			outputStream << " " << lineIt->mStart.x << " " << lineIt->mStart.y;
-		outputStream << " " << buildingIt->mEdgeSet[0].mStart.x << " " << buildingIt->mEdgeSet[0].mStart.y << "\n";
+		outputStream << "\n";
 
 	}
 	outputStream.close();

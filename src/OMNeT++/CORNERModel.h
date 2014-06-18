@@ -29,9 +29,10 @@ class MIXIM_API CORNERModel: public AnalogueModel {
 protected:
 	static DimensionSet dimensions;
 	simtime_t interval;
+	double staticK;
 
 public:
-	CORNERModel( simtime_t i );
+	CORNERModel( simtime_t i, double k = -1 );
 	virtual ~CORNERModel();
 
 	virtual void filterSignal( AirFrame *frame, const Coord& sendersPos, const Coord& receiverPos );

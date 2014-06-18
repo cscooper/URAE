@@ -35,6 +35,9 @@ public:
 	/** Default destructor */
 	virtual ~CarMobility();
 
+	/** Get the current lane. */
+	int getLaneId() { return mLaneID; }
+
 	/** Get the current grid cell of this car. */
 	const Coord getGridCell() const;
 
@@ -58,7 +61,7 @@ protected:
 	/** Fetch the ID of the lane the car is in. */
 	void updateLane();
 
-	std::string mLaneID;					/**< The ID of the lane this car is on. */
+	int mLaneID;							/**< The ID of the lane this car is on. */
 	Coord mGridCell;						/**< The grid cell in which this car is located. */
 	std::string mCarType;					/**< The type of car. */
 	VectorMath::Vector3D mCarDimensions;	/**< The dimensions of the vehicle. */

@@ -17,6 +17,7 @@
 
 #include "UraeScenarioManager.h"
 #include "RsuMobility.h"
+#include "CarMobility.h"
 #include "CORNERModel.h"
 
 #include "BaseWorldUtility.h"
@@ -46,8 +47,9 @@ double CORNERMapping::getValue( const Argument& pos ) const {
 }
 
 
-CORNERModel::CORNERModel( simtime_t i ) {
+CORNERModel::CORNERModel( simtime_t i, double k ) {
 	interval = i;
+	staticK = k;
 }
 
 CORNERModel::~CORNERModel() {
@@ -63,27 +65,42 @@ void CORNERModel::filterSignal( AirFrame *frame, const Coord& sendersPos, const 
 	UraeScenarioManager *pManager = UraeScenarioManagerAccess().get();
 
 	std::string txRoadId, rxRoadId;
-	TraCIMobility *pMobTx = dynamic_cast<TraCIMobility*>(dynamic_cast<ChannelAccess *const>(frame->getSenderModule())->getMobilityModule());
-	TraCIMobility *pMobRx = dynamic_cast<TraCIMobility*>(dynamic_cast<ChannelAccess *const>(frame->getArrivalModule())->getMobilityModule());
-	RsuMobility *pRsuTx = dynamic_cast<RsuMobility*>(dynamic_cast<ChannelAccess *const>(frame->getSenderModule())->getMobilityModule());
+	int txLaneId, rxLaneId;
+	CarMobility *pMobTx = dynamic_cast<CarMobility*>(dynamic_cast<ChannelAccess *const>( frame->getSenderModule())->getMobilityModule());
+	CarMobility *pMobRx = dynamic_cast<CarMobility*>(dynamic_cast<ChannelAccess *const>(frame->getArrivalModule())->getMobilityModule());
+	RsuMobility *pRsuTx = dynamic_cast<RsuMobility*>(dynamic_cast<ChannelAccess *const>( frame->getSenderModule())->getMobilityModule());
 	RsuMobility *pRsuRx = dynamic_cast<RsuMobility*>(dynamic_cast<ChannelAccess *const>(frame->getArrivalModule())->getMobilityModule());
 	UraeData::Classification c;
 
-	if ( pMobTx )
+	if ( pMobTx ) {
 		txRoadId = pMobTx->getRoadId();
-	else if ( pRsuTx )
+		txLaneId = pMobTx->getLaneId();
+	} else if ( pRsuTx ) {
 		txRoadId = pRsuTx->getRoadId();
+		txLaneId = pRsuTx->getLaneId();
+	}
 	Coord posT = pManager->ConvertCoords( sendersPos );
+	Vector2D posTv = Vector2D(posT.x,posT.y);
 
-	if ( pMobRx )
+	if ( pMobRx ) {
 		rxRoadId = pMobRx->getRoadId();
-	else if ( pRsuRx )
+		rxLaneId = pMobRx->getLaneId();
+	} else if ( pRsuRx ) {
 		rxRoadId = pRsuRx->getRoadId();
+		rxLaneId = pRsuRx->getLaneId();
+	}
 	Coord posR = pManager->ConvertCoords( receiverPos );
+	Vector2D posRv = Vector2D(posR.x,posR.y);
 
-	c = UraeData::GetSingleton()->GetClassification( txRoadId, rxRoadId, Vector2D(posT.x,posT.y), Vector2D(posR.x,posR.y) );
-	if ( c.mClassification == Classifier::LOS )
-		kFactor = UraeData::GetSingleton()->GetK( c.mLinkPair, Vector2D(posT.x,posT.y), Vector2D(posR.x,posR.y) );
+	c = UraeData::GetSingleton()->GetClassification( txRoadId, rxRoadId, posTv, posRv );
+	UraeData::GetSingleton()->RefineClassification( c, posTv, posRv );
+	if ( staticK == -1 ) {
+		// There has been no static K factor specified. Get one from our index.
+		if ( c.mClassification == Classifier::LOS )
+			kFactor = UraeData::GetSingleton()->GetK( c.mLinkPair, posTv, txLaneId, posRv, rxLaneId, c.mFlipped );
+	} else {
+		kFactor = staticK;
+	}
 
 	signal.addAttenuation(
 			new CORNERMapping(

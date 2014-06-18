@@ -288,6 +288,7 @@ void Raytracer::Execute() {
 		newComponent.mLineSegment = LineSegment( mPositionTX, mPositionTX+Vector2D(cos(alpha),sin(alpha))*mRayLength );
 		newComponent.mReflectionCoefficient = 1;
 		newComponent.mReflectionCount = 0;
+		newComponent.mLastReflectorIndex = -1;
 		mRayQueue.push( newComponent );
 	}
 

@@ -79,6 +79,7 @@ namespace Urae {
 			VectorMath::Real mMainStreetLaneCount;	/**< Number of lanes in the sidestreet for NLOS1/2 calculations. */
 			VectorMath::Real mSideStreetLaneCount;	/**< Number of lanes in the sidestreet for NLOS1/2 calculations. */
 			VectorMath::Real mParaStreetLaneCount;	/**< Number of lanes in the sidestreet for NLOS2 calculations. */
+			bool mFlipped;							/**< This flag is set for a particular lookup instance to show whether the source and destination indices are flipped from what we entered. */
 		};
 
 		struct Building {
@@ -109,16 +110,12 @@ namespace Urae {
 			LinkIndexSet linkList;
 		};
 
-		struct RiceFactorEntry {
-
-			VectorMath::Vector2D mSource;
-			VectorMath::Vector2D mDestination;
-			VectorMath::Real mKfactor;
-
-		};
-
-		typedef std::vector<RiceFactorEntry> RiceFactorData;
-		typedef std::map<VectorMath::OrderedIndexPair,RiceFactorData> RiceFactorMap;
+		typedef std::vector<double> DestinationLaneList;
+		typedef std::vector<DestinationLaneList> DestinationLocationList;
+		typedef std::map<int,DestinationLocationList> DestinationLookup;
+		typedef std::vector<DestinationLookup> SourceLaneList;
+		typedef std::vector<SourceLaneList> SourceLocationList;
+		typedef std::vector<SourceLocationList> RiceFactorMap;
 
 		struct CarDefinition {
 
@@ -167,7 +164,7 @@ namespace Urae {
 		 * Constructor Arguments:
 		 * 		1. linksFile - file name of the CORNER links file
 		 * 		2. nodesFile - file name of the CORNER nodes file
-		 * 		3. classFile - file name of the CORNER class file
+		 * 		3commonNode.DistanceSq( s ). classFile - file name of the CORNER class file
 		 * 		4. buildingFile - file name of the CORNER building file
 		 * 		5. linkMapFile - file name of the CORNER link mapping file
 		 * 		6. intLinkMapFile - file name of the CORNER link mapping file
@@ -249,11 +246,16 @@ namespace Urae {
 		 */
 		Classification GetClassification( std::string txName, std::string rxName, VectorMath::Vector2D, VectorMath::Vector2D );
 
+		/**
+		 *	Refine the given classification based on the position of vehicles.
+		 */
+		void RefineClassification( Classification &cls, VectorMath::Vector2D &s, VectorMath::Vector2D &d );
+
 		/*
 		 * Method: VectorMath::Real GetK( LinkPair p, Vector2D srcPos, Vector2D destPos );
 		 * Description: Get the pre-computed k-factor between the given source and destination.
 		 */
-		VectorMath::Real GetK( VectorMath::OrderedIndexPair p, VectorMath::Vector2D srcPos, VectorMath::Vector2D destPos );
+		VectorMath::Real GetK( VectorMath::OrderedIndexPair p, VectorMath::Vector2D srcPos, int srcLane, VectorMath::Vector2D destPos, int destLane, bool flipped = false );
 
 		/*
 		 * Method: bool LinkIsInternal( std::string linkName, LinkIndexSet **pLinkIndices );
@@ -356,6 +358,8 @@ namespace Urae {
 		BuildingSet mBuildingSet;
 
 		RiceFactorMap mRiceFactorData;						// map of pre-computed K-factors
+		int mLengthIncrement;								// Increment between K-Factor calculations along the links.
+
 		CarDefinitionMap mCarDefinitions;					// map of car definitions
 
 	};
